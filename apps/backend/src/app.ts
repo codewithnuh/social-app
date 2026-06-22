@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 import authRoutes from './routes/user.route';
+import postRoutes from './routes/post.route';
 import { globalErrorHandler } from './utils/global-error-handler';
 
 const app = express();
@@ -39,6 +40,7 @@ app.get('/health', (req, res) => {
 // Routes
 // --------------------
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/post', postRoutes);
 
 // --------------------
 // Global error handler (MUST be last middleware)

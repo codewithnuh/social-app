@@ -1,12 +1,32 @@
 import * as z from 'zod';
+
+// COMMENT
+
 export const CommentSchema = z.object({
   user: z.string(), // ObjectId
   text: z.string(),
-  createdAt: z.date().optional(), // can be omitted on create
+  createdAt: z.date().optional(),
 });
+
+export type CommentDTO = {
+  text: string;
+};
+
+// CREATE POST (API INPUT)
+
+export const CreatePostSchema = z.object({
+  text: z.string().optional(),
+  image: z.string().optional(),
+});
+
+export type CreatePostDTO = z.infer<typeof CreatePostSchema>;
+
+// POST (DB / API OUTPUT)
+
 export const PostSchema = z.object({
   _id: z.string().optional(),
   author: z.string(),
+
   text: z.string().optional(),
   image: z.string().optional(),
 

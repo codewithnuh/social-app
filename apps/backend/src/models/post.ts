@@ -11,6 +11,7 @@ export interface PostDoc extends Document {
     user: Types.ObjectId;
     text: string;
   }[];
+  createdAt: Schema.Types.Date;
 }
 const CommentSchema = new Schema(
   {

@@ -23,7 +23,7 @@ class UserService {
       password: hashedPassword,
       username,
     });
-    if (!newUser) throw new Error('Failed To created new user');
+    if (!newUser) throw new AppError(ERRORS.INTERNAL_SERVER_ERROR);
 
     return {
       _id: newUser.id,

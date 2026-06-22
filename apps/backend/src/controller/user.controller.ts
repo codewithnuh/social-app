@@ -1,4 +1,4 @@
-import { UserSchema } from '@social-app/shared';
+import { UserSchema, LoginSchema } from '@social-app/shared';
 import { Request, Response } from 'express';
 import UserService from '../services/user.service';
 
@@ -7,14 +7,67 @@ import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
 
 class UserController {
-  public static async registerUser(req: Request, res: Response) {
+  // -------------------------
+  // REGISTER
+  // -------------------------
+  public static registerUser = async (req: Request, res: Response) => {
     const parsedData = UserSchema.safeParse(req.body);
+
     if (!parsedData.success) {
       throw new AppError(ERRORS.VALIDATION_FAILED);
     }
+
     const user = await UserService.createUser(parsedData.data);
+
     return ApiResponseUtil.success(res, user, 'User Created Successfully');
-  }
+  };
+
+  // -------------------------
+  // LOGIN
+  // -------------------------
+  public static loginUser = async (req: Request, res: Response) => {
+    const parsedData = LoginSchema.safeParse(req.body);
+
+    if (!parsedData.success) {
+      throw new AppError(ERRORS.VALIDATION_FAILED);
+    }
+
+    const result = await UserService.loginUser(parsedData.data);
+
+    return ApiResponseUtil.success(res, result, 'Login Successful');
+  };
+
+  // -------------------------
+  // LOGOUT
+  // -------------------------
+  public static logoutUser = async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const result = await UserService.logout(token);
+
+    return ApiResponseUtil.success(res, result, 'Logged out successfully');
+  };
+
+  // -------------------------
+  // REFRESH TOKEN
+  // -------------------------
+  public static refreshToken = async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const result = await UserService.refresh(refreshToken);
+
+    return ApiResponseUtil.success(res, result, 'Token refreshed successfully');
+  };
 }
 
 export default UserController;

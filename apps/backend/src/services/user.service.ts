@@ -1,21 +1,30 @@
 import { SafeUserType, UserType } from '@social-app/shared';
 import { UserModel } from '../models/user';
 import bcrypt from 'bcrypt';
-import id from 'zod/v4/locales/id.js';
 import { AppError } from '../utils/app-error';
-import { HTTP_STATUS } from '../constants/http-status';
 import { ERRORS } from '../constants/errors';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  verifyAccessToken,
+} from '../utils/auth/token';
+import { redis } from '../utils/auth/redis';
 
 class UserService {
+  // -------------------------
+  // CREATE USER
+  // -------------------------
   public static async createUser(user: UserType): Promise<SafeUserType> {
     const { avatarUrl, email, name, password, username } = user;
-    const userExists = await UserModel.findOne({
-      email,
-    });
+
+    const userExists = await UserModel.findOne({ email });
     if (userExists) {
       throw new AppError(ERRORS.USER_ALREADY_EXISTS);
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await UserModel.create({
       avatarUrl,
       email,
@@ -23,17 +32,126 @@ class UserService {
       password: hashedPassword,
       username,
     });
-    if (!newUser) throw new AppError(ERRORS.INTERNAL_SERVER_ERROR);
+
+    if (!newUser) {
+      throw new AppError(ERRORS.INTERNAL_SERVER_ERROR);
+    }
 
     return {
       _id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      username: newUser.email,
+      username: newUser.username,
       avatarUrl: newUser.avatarUrl,
       createdAt: newUser.createdAt,
       updatedAt: newUser.updatedAt,
     };
   }
+
+  // -------------------------
+  // LOGIN
+  // -------------------------
+  public static async loginUser(input: { email: string; password: string }) {
+    const user = await UserModel.findOne({ email: input.email });
+
+    const DUMMY_HASH =
+      '$2b$10$K8V9L6Xp6z2QzR6eR6z2QeR6z2QeR6z2QeR6z2QeR6z2QeR6z2Qe';
+
+    const isValid = await bcrypt.compare(
+      input.password,
+      user ? user.password : DUMMY_HASH
+    );
+
+    if (!user || !isValid) {
+      throw new AppError(ERRORS.INVALID_CREDENTIALS);
+    }
+
+    const accessToken = await generateAccessToken({
+      id: user._id.toString(),
+      email: user.email,
+    });
+
+    const refreshToken = await generateRefreshToken({
+      id: user._id.toString(),
+      email: user.email,
+    });
+
+    return {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  // -------------------------
+  // LOGOUT
+  // -------------------------
+  public static async logout(accessToken: string) {
+    const payload = await verifyAccessToken(accessToken);
+
+    if (!payload?.jti || !payload?.exp) {
+      throw new AppError(ERRORS.INVALID_TOKEN);
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const ttl = payload.exp - now;
+
+    if (ttl > 0) {
+      await redis.setex(`blacklist:${payload.jti}`, ttl, 'revoked');
+    }
+
+    return { success: true };
+  }
+
+  // -------------------------
+  // REFRESH TOKEN
+  // -------------------------
+  public static async refresh(refreshToken: string) {
+    const payload = await verifyRefreshToken(refreshToken);
+
+    if (!payload?.jti) {
+      throw new AppError(ERRORS.INVALID_TOKEN);
+    }
+
+    const isRevoked = await redis.get(`refresh_blacklist:${payload.jti}`);
+
+    if (isRevoked) {
+      throw new AppError(ERRORS.TOKEN_REVOKED);
+    }
+
+    const user = await UserModel.findById(payload.sub);
+    if (!user) {
+      throw new AppError(ERRORS.NOT_FOUND);
+    }
+
+    // rotate refresh token (invalidate old one)
+    await redis.setex(
+      `refresh_blacklist:${payload.jti}`,
+      7 * 24 * 60 * 60,
+      'revoked'
+    );
+
+    const newAccessToken = await generateAccessToken({
+      id: user._id.toString(),
+      email: user.email,
+    });
+
+    const newRefreshToken = await generateRefreshToken({
+      id: user._id.toString(),
+      email: user.email,
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
 }
+
 export default UserService;

@@ -10,9 +10,7 @@ class UserService {
   public static async createUser(user: UserType): Promise<SafeUserType> {
     const { avatarUrl, email, name, password, username } = user;
     const userExists = await UserModel.findOne({
-      where: {
-        email,
-      },
+      email,
     });
     if (userExists) {
       throw new AppError(ERRORS.USER_ALREADY_EXISTS);

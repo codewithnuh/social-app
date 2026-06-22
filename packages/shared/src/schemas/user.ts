@@ -10,8 +10,8 @@ export const UserSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(8),
   avatarUrl: z.url().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
 export type UserType = z.infer<typeof UserSchema>;

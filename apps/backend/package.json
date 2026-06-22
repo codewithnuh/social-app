@@ -15,7 +15,9 @@
   "packageManager": "pnpm@10.33.2",
   "dependencies": {
     "@social-app/shared": "workspace:*",
+    "@types/multer": "^2.1.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -23,6 +25,7 @@
     "jose": "^6.2.3",
     "mongodb": "^7.3.0",
     "mongoose": "^9.7.1",
+    "multer": "^2.2.0",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },

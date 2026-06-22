@@ -10,13 +10,15 @@ import {
   verifyAccessToken,
 } from '../utils/auth/token';
 import { redis } from '../utils/auth/redis';
+import { PostModel } from '../models/post';
+import { Types } from 'mongoose';
 
 class UserService {
   // -------------------------
   // CREATE USER
   // -------------------------
   public static async createUser(user: UserType): Promise<SafeUserType> {
-    const { avatarUrl, email, name, password, username } = user;
+    const { avatarUrl, email, name, password } = user;
 
     const userExists = await UserModel.findOne({ email });
     if (userExists) {
@@ -24,6 +26,25 @@ class UserService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // generate base username
+    const baseUsername = name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
+    let username = baseUsername || 'user';
+
+    // ensure uniqueness
+    let exists = await UserModel.findOne({ username });
+    let counter = 1;
+
+    while (exists) {
+      username = `${baseUsername}${counter}`;
+      exists = await UserModel.findOne({ username });
+      counter++;
+    }
 
     const newUser = await UserModel.create({
       avatarUrl,
@@ -45,6 +66,41 @@ class UserService {
       avatarUrl: newUser.avatarUrl,
       createdAt: newUser.createdAt,
       updatedAt: newUser.updatedAt,
+    };
+  }
+
+  // -------------------------
+  // UPDATE PROFILE (name + avatar only)
+  // -------------------------
+  public static async updateProfile(
+    userId: string,
+    data: { name?: string; avatarUrl?: string }
+  ) {
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      throw new AppError(ERRORS.NOT_FOUND);
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        ...(data.name && { name: data.name }),
+        ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw new AppError(ERRORS.INTERNAL_SERVER_ERROR);
+    }
+
+    return {
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      avatarUrl: updatedUser.avatarUrl,
     };
   }
 
@@ -130,7 +186,6 @@ class UserService {
       throw new AppError(ERRORS.NOT_FOUND);
     }
 
-    // rotate refresh token (invalidate old one)
     await redis.setex(
       `refresh_blacklist:${payload.jti}`,
       7 * 24 * 60 * 60,
@@ -151,6 +206,39 @@ class UserService {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
     };
+  }
+
+  // -------------------------
+  // DELETE ACCOUNT (cascade inside posts)
+  // -------------------------
+  public static async deleteAccount(userId: string, accessToken: string) {
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      throw new AppError(ERRORS.NOT_FOUND);
+    }
+
+    const id = new Types.ObjectId(userId);
+
+    await PostModel.deleteMany({ author: id });
+
+    await PostModel.updateMany({}, { $pull: { likes: userId } });
+
+    await PostModel.updateMany({}, { $pull: { comments: { user: userId } } });
+
+    await UserModel.findByIdAndDelete(userId);
+    const payload = await verifyAccessToken(accessToken);
+
+    if (payload?.jti && payload?.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      const ttl = payload.exp - now;
+
+      if (ttl > 0) {
+        await redis.setex(`blacklist:${payload.jti}`, ttl, 'revoked');
+      }
+    }
+
+    return { success: true };
   }
 }
 

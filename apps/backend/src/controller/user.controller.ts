@@ -68,6 +68,49 @@ class UserController {
 
     return ApiResponseUtil.success(res, result, 'Token refreshed successfully');
   };
+
+  // -------------------------
+  // UPDATE PROFILE
+  // -------------------------
+  public static updateProfile = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id; // from auth middleware
+
+    if (!userId) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const { name, avatarUrl } = req.body;
+
+    const result = await UserService.updateProfile(userId, {
+      name,
+      avatarUrl,
+    });
+
+    return ApiResponseUtil.success(res, result, 'Profile updated successfully');
+  };
+
+  // -------------------------
+  // DELETE ACCOUNT
+  // -------------------------
+  public static deleteAccount = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const result = await UserService.deleteAccount(userId, token);
+
+    return ApiResponseUtil.success(res, result, 'Account deleted successfully');
+  };
 }
 
 export default UserController;

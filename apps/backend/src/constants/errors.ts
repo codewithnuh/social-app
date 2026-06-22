@@ -5,7 +5,10 @@ export const ERRORS = {
     message: 'Validation failed',
     status: HTTP_STATUS.BAD_REQUEST,
   },
-
+  BAD_REQUEST: {
+    message: 'Bad request',
+    status: HTTP_STATUS.BAD_REQUEST,
+  },
   INVALID_CREDENTIALS: {
     message: 'Invalid credentials',
     status: HTTP_STATUS.UNAUTHORIZED,

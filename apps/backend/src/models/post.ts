@@ -1,7 +1,34 @@
-import { model, Schema } from 'mongoose';
-import type { PostType } from '@social-app/shared';
+import { Document, Schema, Types, model } from 'mongoose';
 
-const PostSchema = new Schema(
+import { CallbackError } from 'mongoose';
+
+export interface PostDoc extends Document {
+  author: Types.ObjectId;
+  text?: string;
+  image?: string;
+  likes: Types.ObjectId[];
+  comments: {
+    user: Types.ObjectId;
+    text: string;
+  }[];
+}
+const CommentSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { timestamps: true }
+);
+
+const PostSchema = new Schema<PostDoc>(
   {
     author: {
       type: Schema.Types.ObjectId,
@@ -25,26 +52,20 @@ const PostSchema = new Schema(
       },
     ],
 
-    comments: [
-      {
-        user: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
-        text: {
-          type: String,
-          required: true,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+    comments: [CommentSchema],
   },
   {
     timestamps: true,
   }
 );
 
-export const PostModel = model<PostType>('Post', PostSchema);
+PostSchema.pre(
+  'validate' as any,
+  function (this: PostDoc, next: (err?: CallbackError) => void) {
+    if (!this.text && !this.image) {
+      return next(new Error('Post must contain text or image'));
+    }
+    next();
+  }
+);
+export const PostModel = model<PostDoc>('Post', PostSchema);

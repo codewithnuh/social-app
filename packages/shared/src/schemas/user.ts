@@ -7,7 +7,7 @@ export const UserSchema = z.object({
     error: issue =>
       issue.input === undefined ? 'Email is required.' : 'Invalid email',
   }),
-  username: z.string().min(3),
+  username: z.string().min(3).optional(),
   password: z.string().min(8),
   avatarUrl: z.url().optional(),
   createdAt: z.date().optional(),

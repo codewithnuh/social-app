@@ -111,6 +111,23 @@ class UserController {
 
     return ApiResponseUtil.success(res, result, 'Account deleted successfully');
   };
+  public static getUserById = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id; // from auth middleware
+
+    if (!userId) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const result = await UserService.getUserById(userId);
+
+    return ApiResponseUtil.success(res, result, 'User found successfully');
+  };
+
+  public static getAllUsers = async (req: Request, res: Response) => {
+    const result = await UserService.getAllUsers();
+
+    return ApiResponseUtil.success(res, result, 'Users found successfully');
+  };
 }
 
 export default UserController;

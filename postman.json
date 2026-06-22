@@ -1,86 +1,286 @@
 {
   "info": {
-    "name": "Auth API",
-    "_postman_id": "b8f1c2d0-9c2a-4a4f-9a9d-auth-demo",
-    "description": "Authentication routes for Social App",
+    "name": "Social Posts API",
+    "_postman_id": "b8f1c2d0-9c2a-4a4f-9a9d-social-posts",
+    "description": "Complete API collection for Social Posts application. Includes Auth (register, login, refresh, logout, profile, delete), Posts (create, feed, like, comment, delete), and Health check.\n\nAfter running Login, the accessToken and refreshToken variables are automatically set via Postman test scripts.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000/api/v1/auth"
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
     },
     {
       "key": "accessToken",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "refreshToken",
-      "value": ""
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentPostId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Register User",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": {
-          "raw": "{{baseUrl}}/register",
-          "host": ["{{baseUrl}}"],
-          "path": ["register"]
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123\",\n  \"username\": \"johndoe\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/health",
+              "host": ["http://localhost:5000"],
+              "path": ["health"]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Login User",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": {
-          "raw": "{{baseUrl}}/login",
-          "host": ["{{baseUrl}}"],
-          "path": ["login"]
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
         },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123\"\n}"
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "  pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "  pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"avatarUrl\": \"https://example.com/new-avatar.png\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "delete"]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Logout User",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/logout",
-          "host": ["{{baseUrl}}"],
-          "path": ["logout"]
-        }
-      }
-    },
-    {
-      "name": "Refresh Token",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": {
-          "raw": "{{baseUrl}}/refresh",
-          "host": ["{{baseUrl}}"],
-          "path": ["refresh"]
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "  pm.collectionVariables.set('currentPostId', jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/post",
+              "host": ["{{baseUrl}}"],
+              "path": ["post"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"This is a test post from Postman!\",\n  \"image\": \"https://via.placeholder.com/150\"\n}"
+            }
+          }
         },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/post/feed",
+              "host": ["{{baseUrl}}"],
+              "path": ["post", "feed"]
+            }
+          }
+        },
+        {
+          "name": "Like / Unlike Post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/post/{{currentPostId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["post", "{{currentPostId}}", "like"]
+            }
+          }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/post/{{currentPostId}}/comment",
+              "host": ["{{baseUrl}}"],
+              "path": ["post", "{{currentPostId}}", "comment"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Great post!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/post/{{currentPostId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["post", "{{currentPostId}}"]
+            }
+          }
         }
-      }
+      ]
     }
   ]
 }

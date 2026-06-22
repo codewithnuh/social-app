@@ -30,5 +30,11 @@ router.delete(
   authMiddleware,
   asyncHandler(UserController.deleteAccount)
 );
+router.get(
+  '/:userId',
+  authMiddleware,
+  asyncHandler(UserController.getUserById)
+);
 
+router.get('/all', authMiddleware, asyncHandler(UserController.getAllUsers));
 export default router;

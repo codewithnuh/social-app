@@ -3,7 +3,7 @@ import PostService from '../services/post.service';
 import { ApiResponseUtil } from '../utils/api-response';
 import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
-import { CreatePostDTO, CommentDTO } from '@social-app/shared';
+import { CreatePostDTO } from '@social-app/shared';
 
 class PostController {
   // CREATE POST
@@ -11,7 +11,7 @@ class PostController {
     req: Request<{}, {}, CreatePostDTO>,
     res: Response
   ) => {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
     const post = await PostService.createPost({
@@ -32,7 +32,7 @@ class PostController {
 
   // LIKE / UNLIKE
   public static toggleLike = async (req: Request, res: Response) => {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
     const postId = req.params.postId as string;
@@ -44,7 +44,7 @@ class PostController {
 
   // ADD COMMENT
   public static addComment = async (req: Request, res: Response) => {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
     const postId = req.params.postId as string;
@@ -59,7 +59,7 @@ class PostController {
 
   // DELETE POST
   public static deletePost = async (req: Request, res: Response) => {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
     const postId = req.params.postId as string;

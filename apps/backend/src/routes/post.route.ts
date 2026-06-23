@@ -6,7 +6,7 @@ import { authMiddleware } from '../middleware/auth.middleware';
 const router = Router();
 router.post('/', authMiddleware, asyncHandler(PostController.createPost));
 
-router.get('/feed', asyncHandler(PostController.getFeed));
+router.get('/feed', authMiddleware, asyncHandler(PostController.getFeed));
 
 router.patch(
   '/:postId/like',

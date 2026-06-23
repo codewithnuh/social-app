@@ -1,7 +1,5 @@
 import { Document, Schema, Types, model } from 'mongoose';
 
-import { CallbackError } from 'mongoose';
-
 export interface PostDoc extends Document {
   author: Types.ObjectId;
   text?: string;
@@ -60,13 +58,9 @@ const PostSchema = new Schema<PostDoc>(
   }
 );
 
-PostSchema.pre(
-  'validate' as any,
-  function (this: PostDoc, next: (err?: CallbackError) => void) {
-    if (!this.text && !this.image) {
-      return next(new Error('Post must contain text or image'));
-    }
-    next();
+PostSchema.pre('validate', function () {
+  if (!this.text && !this.image) {
+    throw new Error('Post must contain text or image');
   }
-);
+});
 export const PostModel = model<PostDoc>('Post', PostSchema);

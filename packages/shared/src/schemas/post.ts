@@ -24,7 +24,7 @@ export type CreatePostDTO = z.infer<typeof CreatePostSchema>;
 // POST (DB / API OUTPUT)
 
 export const PostSchema = z.object({
-  _id: z.string().optional(),
+  id: z.string().optional(),
   author: z.string(),
 
   text: z.string().optional(),

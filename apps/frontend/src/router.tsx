@@ -4,6 +4,7 @@ import { PublicRoute } from './components/PublicRoute';
 import AuthLayout from './layouts/AuthLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
 
 export const router = createBrowserRouter([
   {
@@ -29,7 +30,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/dashboard',
-        element: <div>Welcome to your premium dashboard area!</div>, // Replace with your Dashboard component
+        element: <Dashboard />, // Replace with your Dashboard component
       },
     ],
   },

@@ -3,6 +3,7 @@ import { UserModel } from '../models/user';
 import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
 import { Types } from 'mongoose';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 class PostService {
   // -------------------------
@@ -38,25 +39,33 @@ class PostService {
   // -------------------------
   // GET FEED (ALL POSTS)
   // -------------------------
-  public static async getFeed() {
+  public static async getFeed(currentUserId: string) {
     const posts = await PostModel.find()
       .populate('author', 'username name avatarUrl')
+      .populate('comments.user', 'username name avatarUrl')
       .sort({ createdAt: -1 });
 
-    return posts.map(post => ({
-      _id: post._id,
-      author: post.author,
-      text: post.text,
-      image: post.image,
-      likesCount: post.likes.length,
-      commentsCount: post.comments.length,
-      comments: post.comments.map((c: any) => ({
-        user: c.user,
-        text: c.text,
-        createdAt: c.createdAt,
-      })),
-      createdAt: post.createdAt,
-    }));
+    return posts.map(post => {
+      const isLiked = post.likes.some(id => id.toString() === currentUserId);
+
+      return {
+        _id: post._id.toString(),
+        author: post.author,
+        text: post.text,
+        image: post.image,
+
+        likesCount: post.likes.length,
+        isLiked,
+
+        commentsCount: post.comments.length,
+        comments: post.comments.map(comment => ({
+          user: comment.user,
+          text: comment.text,
+        })),
+
+        createdAt: post.createdAt,
+      };
+    });
   }
 
   // -------------------------
@@ -64,28 +73,29 @@ class PostService {
   // -------------------------
   public static async toggleLike(postId: string, userId: string) {
     const post = await PostModel.findById(postId);
+
     if (!post) {
-      throw new AppError(ERRORS.NOT_FOUND);
+      throw new Error('Post not found');
     }
 
-    const userObjectId = new Types.ObjectId(userId);
+    const index = post.likes.findIndex(id => id.toString() === userId);
 
-    const hasLiked = post.likes.some(id => id.equals(userObjectId));
+    const isLiked = index === -1;
 
-    if (hasLiked) {
-      post.likes = post.likes.filter(id => !id.equals(userObjectId));
+    if (isLiked) {
+      post.likes.push(userId as any);
     } else {
-      post.likes.push(userObjectId);
+      post.likes.splice(index, 1);
     }
 
     await post.save();
 
     return {
-      liked: !hasLiked,
+      success: true,
+      isLiked,
       likesCount: post.likes.length,
     };
   }
-
   // -------------------------
   // ADD COMMENT
   // -------------------------

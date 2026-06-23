@@ -4,6 +4,7 @@ import { ApiResponseUtil } from '../utils/api-response';
 import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
 import { CreatePostDTO } from '@social-app/shared';
+import UploadService from '../services/upload.service';
 
 class PostController {
   // CREATE POST
@@ -14,20 +15,24 @@ class PostController {
     const user = (req as any).user;
     if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
+    let imageUrl: string | undefined;
+
+    // 1. if file exists → upload it
+    if ((req as any).file?.path) {
+      const uploadResult = await UploadService.uploadImage(
+        (req as any).file.path
+      );
+      imageUrl = uploadResult.url;
+    }
+
+    // 2. now create post with CLEAN data
     const post = await PostService.createPost({
       authorId: user.id,
       text: req.body.text,
-      image: req.body.image,
+      image: imageUrl,
     });
 
-    return ApiResponseUtil.success(res, post, 'Post created successfully');
-  };
-
-  // FEED
-  public static getFeed = async (_req: Request, res: Response) => {
-    const posts = await PostService.getFeed();
-
-    return ApiResponseUtil.success(res, posts, 'Feed fetched successfully');
+    return ApiResponseUtil.success(res, post, 'Post created');
   };
 
   // LIKE / UNLIKE
@@ -41,7 +46,13 @@ class PostController {
 
     return ApiResponseUtil.success(res, result, 'Post updated successfully');
   };
+  // GET FEED
+  public static getFeed = async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const result = await PostService.getFeed(userId);
 
+    return ApiResponseUtil.success(res, result, 'Feed fetched successfully');
+  };
   // ADD COMMENT
   public static addComment = async (req: Request, res: Response) => {
     const user = (req as any).user;

@@ -1,3 +1,4 @@
+// src/hooks/useUser.ts
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '../utils/api';
 
@@ -9,7 +10,6 @@ interface User {
   avatarUrl?: string;
 }
 
-// Defining a standardized shape for your generic backend API envelope
 interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -18,15 +18,14 @@ interface ApiResponse<T> {
 
 async function fetchCurrentUser(): Promise<User | null> {
   try {
-    // 1. Explicitly type the expected response envelope structure
+    // apiRequest automatically injects credentials: 'include' and handles 401 refreshes internally
     const response = await apiRequest<ApiResponse<User>>('/api/v1/auth/me', {
       method: 'GET',
-      credentials: 'include', // Crucial: Transmits HttpOnly cookie validation hashes
     });
 
     return response.data;
   } catch {
-    // Graceful fallback for unauthenticated users (401 triggers this clean block)
+    // If apiRequest throws even after a refresh attempt, the session is officially dead
     return null;
   }
 }
@@ -35,7 +34,7 @@ export function useUser() {
   return useQuery<User | null>({
     queryKey: ['user'],
     queryFn: fetchCurrentUser,
-    retry: false, // Prevents loop storms on token expiration blocks
-    staleTime: 1000 * 60 * 5, // Keeps application route contexts warm for 5 minutes
+    retry: false, // Prevents infinite loops if both tokens are completely dead
+    staleTime: 1000 * 60 * 5, // Keeps your auth status cached comfortably for 5 minutes
   });
 }

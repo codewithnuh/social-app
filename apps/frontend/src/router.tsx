@@ -1,27 +1,36 @@
-// src/router.tsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicRoute } from './components/PublicRoute';
 import AuthLayout from './layouts/AuthLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
 export const router = createBrowserRouter([
   {
-    // Auth wrapper layout containing the MUI theme provider
-    element: <AuthLayout />,
+    path: '/',
+    element: <Navigate to="/login" replace />,
+  },
+  // 1. PUBLIC ONLY ROUTES (Login / Register)
+  {
+    element: <PublicRoute />,
     children: [
       {
-        path: '/login',
-        element: <Login />,
-      },
-      {
-        path: '/register',
-        element: <Register />,
+        element: <AuthLayout />,
+        children: [
+          { path: '/login', element: <Login /> },
+          { path: '/register', element: <Register /> },
+        ],
       },
     ],
   },
+  // 2. PROTECTED ROUTES (Dashboard / Dashboard Subpages)
   {
-    // Quick fallback catch-all to redirect root URL to login page
-    path: '/',
-    element: <Navigate to="/login" replace />,
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/dashboard',
+        element: <div>Welcome to your premium dashboard area!</div>, // Replace with your Dashboard component
+      },
+    ],
   },
 ]);

@@ -1,49 +1,72 @@
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Stack, Link } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Stack,
+  Alert,
+  Link,
+} from '@mui/material';
 import { z } from 'zod';
+import { apiRequest } from '../utils/api';
 
-// Simple schema
 const loginSchema = z.object({
   email: z.email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export default function Login() {
-  // Single object state to track field errors cleanly
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const [formErrors, setFormErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+
+  const loginMutation = useMutation({
+    mutationFn: async (payload: z.infer<typeof loginSchema>) => {
+      return apiRequest<{
+        user: unknown;
+        accessToken: string;
+        refreshToken: string;
+      }>('/api/v1/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+    },
+
+    onSuccess: data => {
+      queryClient.setQueryData(['user'], data.user);
+      navigate('/dashboard', { replace: true });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setErrors({}); // Reset errors on new submit
+    setFormErrors({});
 
-    // Use FormData API to gather values natively without controlled state bindings
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
-
-    // Safely parse data using Zod
+    console.log('SUBMIT FIRED 🔥'); //  add this
     const result = loginSchema.safeParse(data);
-
+    console.log(result);
     if (!result.success) {
-      // Format Zod errors into a simple flat object mapping field names to messages
-      const formattedErrors: typeof errors = {};
+      const errors: typeof formErrors = {};
       result.error.issues.forEach(issue => {
-        const path = issue.path[0] as keyof typeof errors;
-        formattedErrors[path] = issue.message;
+        const key = issue.path[0] as keyof typeof formErrors;
+        errors[key] = issue.message;
       });
-      setErrors(formattedErrors);
+      console.log(errors);
+      setFormErrors(errors);
       return;
     }
 
-    // If validation passes, run your API call
-    setLoading(true);
-    console.log('Validated payload ready for API submission:', result.data);
-
-    // simulate network
-    setTimeout(() => setLoading(false), 1000);
+    loginMutation.mutate(result.data);
   };
 
   return (
@@ -52,48 +75,55 @@ export default function Login() {
         Sign In
       </Typography>
 
+      {loginMutation.isError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {(loginMutation.error as Error).message}
+        </Alert>
+      )}
+
       <Stack spacing={3} sx={{ mt: 2 }}>
         <TextField
           required
           fullWidth
           label="Email Address"
-          name="email" // Match schema key
-          type="email"
-          error={!!errors.email}
-          helperText={errors.email}
+          name="email"
+          error={!!formErrors.email}
+          helperText={formErrors.email}
         />
 
         <TextField
           required
           fullWidth
           label="Password"
-          name="password" // Match schema key
+          name="password"
           type="password"
-          error={!!errors.password}
-          helperText={errors.password}
+          error={!!formErrors.password}
+          helperText={formErrors.password}
         />
 
         <Button
+          style={{ borderRadius: '40px' }}
           type="submit"
           fullWidth
           variant="contained"
           size="large"
-          disabled={loading}
+          disabled={loginMutation.isPending}
           sx={{ py: 1.5, textTransform: 'none', fontWeight: '600' }}
         >
-          {loading ? 'Processing...' : 'Login'}
+          {loginMutation.isPending ? 'Signing In...' : 'Login'}
         </Button>
       </Stack>
+
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Already have an account?{' '}
+          Don't have an account?{' '}
           <Link
             component={RouterLink}
-            to="/login"
+            to="/register"
             variant="subtitle2"
             underline="hover"
           >
-            Sign In
+            Register
           </Link>
         </Typography>
       </Box>

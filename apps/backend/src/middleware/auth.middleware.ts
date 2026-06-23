@@ -4,18 +4,26 @@ import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
 import { UserModel } from '../models/user';
 
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    username: string;
+    avatarUrl?: string;
+  };
+}
+
 export const authMiddleware = async (
-  req: Request,
+  req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies?.accessToken;
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (!token) {
     return next(new AppError(ERRORS.UNAUTHORIZED));
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const payload = await verifyAccessToken(token);
@@ -28,17 +36,16 @@ export const authMiddleware = async (
       return next(new AppError(ERRORS.NOT_FOUND));
     }
 
-    // attach user to request
-    (req as any).user = {
+    req.user = {
       id: user._id.toString(),
       email: user.email,
       name: user.name,
-      username: user.username,
+      username: user.username || 'null',
       avatarUrl: user.avatarUrl,
     };
 
     next();
   } catch (err) {
-    return next(err);
+    return next(new AppError(ERRORS.UNAUTHORIZED));
   }
 };

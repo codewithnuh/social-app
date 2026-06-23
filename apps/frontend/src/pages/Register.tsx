@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -7,13 +8,14 @@ import {
   Button,
   Stack,
   Link,
-  FormHelperText,
+  Alert,
 } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { z } from 'zod';
+import { apiRequest } from '../utils/api';
+
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.email('Please enter a valid email address'),
+  email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -21,65 +23,51 @@ interface FormErrors {
   name?: string;
   email?: string;
   password?: string;
-  profileImage?: string;
 }
 
 export default function Register() {
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Handle standard native input file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-      setErrors(prev => ({ ...prev, profileImage: undefined }));
-    }
-  };
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const registerMutation = useMutation({
+    mutationFn: async (payload: z.infer<typeof registerSchema>) => {
+      return apiRequest<{ user: unknown; accessToken?: string }>(
+        '/api/v1/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+    },
+
+    onSuccess: data => {
+      queryClient.setQueryData(['user'], data.user);
+      navigate('/dashboard', { replace: true });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setErrors({});
+    setFormErrors({});
 
     const formData = new FormData(e.currentTarget);
-    const textData = Object.fromEntries(formData.entries());
+    const data = Object.fromEntries(formData.entries());
 
-    // 2. Validate text values with Zod
-    const textResult = registerSchema.safeParse(textData);
-    const currentErrors: FormErrors = {};
+    const result = registerSchema.safeParse(data);
 
-    if (!textResult.success) {
-      textResult.error.issues.forEach(issue => {
-        const path = issue.path[0] as keyof FormErrors;
-        currentErrors[path] = issue.message;
+    if (!result.success) {
+      const errors: FormErrors = {};
+      result.error.issues.forEach(issue => {
+        const key = issue.path[0] as keyof FormErrors;
+        errors[key] = issue.message;
       });
-    }
-
-    // 3. Manual file field check
-    if (!selectedFile) {
-      currentErrors.profileImage = 'Profile image is required';
-    }
-
-    // If there are any errors (Zod or File related), halt submission
-    if (Object.keys(currentErrors).length > 0) {
-      setErrors(currentErrors);
+      setFormErrors(errors);
       return;
     }
 
-    // 4. Everything is valid -> Build the standard payload
-    setLoading(true);
-
-    const finalPayload = new FormData();
-    finalPayload.append('name', textResult.data!.name);
-    finalPayload.append('email', textResult.data!.email);
-    finalPayload.append('password', textResult.data!.password);
-    finalPayload.append('profileImage', selectedFile as Blob);
-
-    console.log(
-      'Valid Registration payload constructed! Ready for API transmission.'
-    );
-
-    setTimeout(() => setLoading(false), 1000);
+    registerMutation.mutate(result.data);
   };
 
   return (
@@ -87,89 +75,53 @@ export default function Register() {
       <Typography variant="h5" gutterBottom>
         Create an Account
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Join us by filling out the details below.
-      </Typography>
+
+      {registerMutation.isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {registerMutation.error.message}
+        </Alert>
+      )}
 
       <Stack spacing={3}>
         <TextField
-          required
-          fullWidth
-          label="Full Name"
           name="name"
-          error={!!errors.name}
-          helperText={errors.name}
+          label="Full Name"
+          fullWidth
+          error={!!formErrors.name}
+          helperText={formErrors.name}
         />
 
         <TextField
-          required
-          fullWidth
-          label="Email Address"
           name="email"
-          type="email"
-          error={!!errors.email}
-          helperText={errors.email}
+          label="Email"
+          fullWidth
+          error={!!formErrors.email}
+          helperText={formErrors.email}
         />
 
         <TextField
-          required
-          fullWidth
-          label="Password"
           name="password"
+          label="Password"
           type="password"
-          error={!!errors.password}
-          helperText={errors.password}
+          fullWidth
+          error={!!formErrors.password}
+          helperText={formErrors.password}
         />
-
-        {/* File upload wrapper element */}
-        <Box>
-          <Button
-            component="label"
-            variant="outlined"
-            startIcon={<CloudUploadIcon />}
-            fullWidth
-            color={errors.profileImage ? 'error' : 'primary'}
-            sx={{ py: 1.2, textTransform: 'none' }}
-          >
-            {selectedFile ? selectedFile.name : 'Upload Profile Image'}
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleFileChange}
-            />
-          </Button>
-          {errors.profileImage && (
-            <FormHelperText error sx={{ ml: 1.5, mt: 0.5 }}>
-              {errors.profileImage}
-            </FormHelperText>
-          )}
-        </Box>
 
         <Button
           type="submit"
           fullWidth
           variant="contained"
-          size="large"
-          disabled={loading}
-          sx={{ py: 1.5, fontWeight: '600', textTransform: 'none' }}
+          disabled={registerMutation.isPending}
         >
-          {loading ? 'Registering...' : 'Register'}
+          {registerMutation.isPending ? 'Creating...' : 'Register'}
         </Button>
       </Stack>
 
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Already have an account?{' '}
-          <Link
-            component={RouterLink}
-            to="/login"
-            variant="subtitle2"
-            underline="hover"
-          >
-            Sign In
-          </Link>
-        </Typography>
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Link component={RouterLink} to="/login">
+          Already have an account?
+        </Link>
       </Box>
     </Box>
   );

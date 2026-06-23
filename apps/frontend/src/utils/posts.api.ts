@@ -1,6 +1,6 @@
 import type { PostType } from '../components/Dashboard/types';
 import { apiRequest } from '../utils/api';
-import type { CreatePostDTO, CommentDTO } from '@social-app/shared';
+import type { CommentDTO } from '@social-app/shared';
 type FeedType = {
   success: boolean;
   message: string;
@@ -8,11 +8,12 @@ type FeedType = {
 };
 export class PostsAPI {
   // CREATE POST
-  static createPost(data: CreatePostDTO) {
-    console.log({ 'from api': JSON.stringify(data) });
+  static createPost(data: FormData) {
     return apiRequest<PostType>('/api/v1/post', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
+      // no Content-Type header, no JSON.stringify —
+      // browser sets multipart/form-data boundary automatically
     });
   }
 

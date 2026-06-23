@@ -50,9 +50,19 @@ export default function Dashboard() {
     e.preventDefault();
 
     if (!postText.trim() && !postImage) return;
+    if (!user) return;
 
     createPost.mutate(
-      { text: postText, image: undefined },
+      {
+        text: postText,
+        image: postImage,
+        author: {
+          _id: user.id,
+          name: user.name,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+        },
+      },
       {
         onSuccess: () => {
           setPostText('');
@@ -64,18 +74,37 @@ export default function Dashboard() {
     );
   };
 
+  // reset to page 1 whenever the tab changes — avoids landing on an empty page
+  // when switching filters shrinks the result set
+  const handleTabChange = (val: number) => {
+    setCurrentTab(val);
+    setPage(1);
+  };
+
   const postsArray = Array.isArray(posts) ? posts : [];
 
   const filteredPosts = useMemo(() => {
     const q = searchQuery.toLowerCase();
 
-    return postsArray.filter(post => {
+    let result = postsArray.filter(post => {
       const text = (post.text ?? '').toLowerCase();
       const author = (post.author?.username ?? '').toLowerCase();
-
       return text.includes(q) || author.includes(q);
     });
-  }, [postsArray, searchQuery]);
+
+    if (currentTab === 1) {
+      // "For You" — placeholder personalization: exclude your own posts
+      result = result.filter(post => post.author?._id !== user?.id);
+    } else if (currentTab === 2) {
+      // "Most Liked" — sort by likesCount desc, don't mutate original array
+      result = [...result].sort(
+        (a, b) => (b.likesCount ?? 0) - (a.likesCount ?? 0)
+      );
+    }
+    // currentTab === 0 ("All Posts") — no extra filtering
+
+    return result;
+  }, [postsArray, searchQuery, currentTab, user?.id]);
 
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 
@@ -112,7 +141,7 @@ export default function Dashboard() {
             onSubmit={handleCreatePost}
           />
 
-          <FeedTabs value={currentTab} onChange={setCurrentTab} />
+          <FeedTabs value={currentTab} onChange={handleTabChange} />
 
           {isLoading ? (
             <Typography sx={{ textAlign: 'center', py: 4 }}>

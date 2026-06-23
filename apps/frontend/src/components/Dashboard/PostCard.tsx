@@ -115,7 +115,11 @@ export default function PostCard({ post }: Props) {
       >
         <CardHeader
           avatar={
-            <Avatar src={post.author.avatarUrl}>
+            <Avatar
+              src={
+                post.author.avatarUrl || ' https://placehold.net/400x400.png'
+              }
+            >
               {post.author.name?.[0] || post.author.username?.[0]}
             </Avatar>
           }
@@ -138,8 +142,6 @@ export default function PostCard({ post }: Props) {
           {post.image && (
             <Box sx={{ mt: 2 }}>
               <img
-                height={400}
-                width={400}
                 alt={post.text?.slice(0, 10)}
                 src={post.image}
                 style={{ width: '100%' }}

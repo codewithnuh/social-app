@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostsAPI } from '../utils/posts.api';
-import type { CreatePostDTO } from '@social-app/shared';
-import type { PostType } from '../components/Dashboard/types';
-import type { UserType } from '../components/Dashboard/types';
+
+import type {
+  UserType,
+  PostType,
+  CreatePostInput,
+} from '../components/Dashboard/types';
+
 // --------------------
 // GET FEED
 // --------------------
@@ -22,19 +26,75 @@ export function useFeed() {
 // --------------------
 // CREATE POST
 // --------------------
+
 export function useCreatePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreatePostDTO) => PostsAPI.createPost(data),
+    mutationFn: (input: CreatePostInput) => {
+      const formData = new FormData();
+      formData.append('text', input.text);
+      if (input.image) {
+        formData.append('image', input.image); // must match multer's upload.single('image')
+      }
+      return PostsAPI.createPost(formData);
+    },
 
-    onSuccess: () => {
-      // refresh feed after creating post
+    // optimistic insert
+    onMutate: async input => {
+      await queryClient.cancelQueries({ queryKey: ['posts', 'feed'] });
+
+      const previousPosts = queryClient.getQueryData<PostType[]>([
+        'posts',
+        'feed',
+      ]);
+
+      const tempId = `temp-${Date.now()}`;
+
+      const optimisticPost: PostType = {
+        _id: tempId,
+        text: input.text,
+        image: input.image ? URL.createObjectURL(input.image) : undefined,
+        author: input.author,
+        isLiked: false,
+        likesCount: 0,
+        comments: [],
+        commentsCount: 0,
+      };
+
+      queryClient.setQueryData(
+        ['posts', 'feed'],
+        (old: PostType[] | undefined) => [optimisticPost, ...(old ?? [])]
+      );
+
+      // return context for rollback + so onSuccess can find/replace the temp post
+      return { previousPosts, tempId };
+    },
+
+    // rollback on failure
+    onError: (_err, _input, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['posts', 'feed'], context.previousPosts);
+      }
+    },
+
+    // replace temp post with the real server post
+    onSuccess: (serverPost, _input, context) => {
+      queryClient.setQueryData(
+        ['posts', 'feed'],
+        (old: PostType[] | undefined) => {
+          if (!old) return old;
+          return old.map(p => (p._id === context?.tempId ? serverPost : p));
+        }
+      );
+    },
+
+    // safety net: always resync with server truth eventually
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['posts', 'feed'] });
     },
   });
 }
-
 // --------------------
 // LIKE POST
 // --------------------

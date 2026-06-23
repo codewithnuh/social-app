@@ -41,3 +41,13 @@ export type PostType = {
 
   createdAt?: string;
 };
+export interface CreatePostInput {
+  text: string;
+  image?: File | null;
+  author: {
+    _id: string;
+    name: string;
+    username: string;
+    avatarUrl?: string;
+  };
+}

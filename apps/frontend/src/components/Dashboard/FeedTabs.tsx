@@ -1,5 +1,3 @@
-// src/components/dashboard/FeedTabs.tsx
-import React from 'react';
 import { Box, Tab, Tabs } from '@mui/material';
 
 type Props = {

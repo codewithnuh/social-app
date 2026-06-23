@@ -1,4 +1,3 @@
-// src/hooks/useUser.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../utils/api';
 import type { UpdateProfileDTO } from '../utils/user.api';

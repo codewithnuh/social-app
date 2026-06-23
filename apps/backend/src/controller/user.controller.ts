@@ -8,9 +8,8 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import UploadService from '../services/upload.service';
 
 class UserController {
-  // -------------------------
   // REGISTER
-  // -------------------------
+
   public static registerUser = async (req: Request, res: Response) => {
     const parsedData = UserSchema.safeParse(req.body);
 
@@ -23,9 +22,8 @@ class UserController {
     return ApiResponseUtil.success(res, user, 'User Created Successfully');
   };
 
-  // -------------------------
   // LOGIN
-  // -------------------------
+
   public static loginUser = async (req: Request, res: Response) => {
     const parsedData = LoginSchema.safeParse(req.body);
 
@@ -56,9 +54,8 @@ class UserController {
     );
   };
 
-  // -------------------------
   // LOGOUT
-  // -------------------------
+
   public static logoutUser = async (req: Request, res: Response) => {
     const token = req.cookies?.accessToken;
 
@@ -74,9 +71,8 @@ class UserController {
     return ApiResponseUtil.success(res, result, 'Logged out successfully');
   };
 
-  // -------------------------
   // REFRESH TOKEN
-  // -------------------------
+
   public static refreshToken = async (req: Request, res: Response) => {
     const token = req.cookies?.refreshToken;
 
@@ -105,9 +101,8 @@ class UserController {
     return ApiResponseUtil.success(res, { user: result }, 'Token refreshed');
   };
 
-  // -------------------------
   // UPDATE PROFILE
-  // -------------------------
+
   public static updateProfile = async (
     req: AuthenticatedRequest,
     res: Response
@@ -130,9 +125,8 @@ class UserController {
     return ApiResponseUtil.success(res, updatedUser, 'Profile updated');
   };
 
-  // -------------------------
   // ME
-  // -------------------------
+
   public static me = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
 
@@ -143,9 +137,8 @@ class UserController {
     return ApiResponseUtil.success(res, result, 'Current user');
   };
 
-  // -------------------------
   // DELETE ACCOUNT
-  // -------------------------
+
   public static deleteAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const token = req.cookies?.accessToken;
@@ -162,9 +155,8 @@ class UserController {
     return ApiResponseUtil.success(res, result, 'Account deleted');
   };
 
-  // -------------------------
   // USERS
-  // -------------------------
+
   public static getUserById = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
 

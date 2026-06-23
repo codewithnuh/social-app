@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
+import z, { ZodError } from 'zod';
 
 import { AppError } from '../utils/app-error';
 import { HTTP_STATUS } from '../constants/http-status';
@@ -30,13 +30,12 @@ export const globalErrorHandler = (
       success: false,
       data: null,
       message: ERRORS.VALIDATION_FAILED.message,
-      errors: err.flatten(), // cleaner + standard
+      errors: z.treeifyError(err), // cleaner + standard
     });
   }
 
-  // -------------------------
   // Mongo duplicate key error
-  // -------------------------
+
   if (
     typeof err === 'object' &&
     err !== null &&
@@ -50,9 +49,8 @@ export const globalErrorHandler = (
     });
   }
 
-  // -------------------------
   // Unknown errors
-  // -------------------------
+
   console.error('[UNHANDLED ERROR]', err);
 
   return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({

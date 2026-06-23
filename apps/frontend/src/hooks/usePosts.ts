@@ -7,9 +7,8 @@ import type {
   CreatePostInput,
 } from '../components/Dashboard/types';
 
-// --------------------
 // GET FEED
-// --------------------
+
 export function useFeed() {
   console.log('useFeed executed');
   return useQuery({
@@ -23,9 +22,7 @@ export function useFeed() {
   });
 }
 
-// --------------------
 // CREATE POST
-// --------------------
 
 export function useCreatePost() {
   const queryClient = useQueryClient();
@@ -95,9 +92,8 @@ export function useCreatePost() {
     },
   });
 }
-// --------------------
+
 // LIKE POST
-// --------------------
 
 export function useToggleLike() {
   const queryClient = useQueryClient();
@@ -105,7 +101,6 @@ export function useToggleLike() {
   return useMutation({
     mutationFn: (postId: string) => PostsAPI.toggleLike(postId),
 
-    // 🔥 OPTIMISTIC UPDATE
     onMutate: async postId => {
       await queryClient.cancelQueries({ queryKey: ['posts', 'feed'] });
 
@@ -144,9 +139,7 @@ export function useToggleLike() {
   });
 }
 
-// --------------------
 // COMMENT
-// --------------------
 
 export function useAddComment() {
   const queryClient = useQueryClient();

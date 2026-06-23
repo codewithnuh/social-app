@@ -1,4 +1,4 @@
-import { SafeUserType, UserType } from '@social-app/shared';
+import { LoginSchema, SafeUserType, UserType } from '@social-app/shared';
 import { UserModel } from '../models/user';
 import bcrypt from 'bcrypt';
 import { AppError } from '../utils/app-error';
@@ -14,9 +14,8 @@ import { PostModel } from '../models/post';
 import { Types } from 'mongoose';
 
 class UserService {
-  // -------------------------
   // CREATE USER
-  // -------------------------
+
   public static async createUser(user: UserType): Promise<SafeUserType> {
     const { avatarUrl, email, name, password } = user;
 
@@ -115,9 +114,9 @@ class UserService {
       updatedAt: user.updatedAt,
     };
   }
-  // -------------------------
+
   // UPDATE PROFILE (name + avatar only)
-  // -------------------------
+
   public static async updateProfile(
     userId: string,
     data: { name?: string; avatarUrl?: string }
@@ -150,12 +149,12 @@ class UserService {
     };
   }
 
-  // -------------------------
   // LOGIN
-  // -------------------------
-  public static async loginUser(input: { email: string; password: string }) {
-    const user = await UserModel.findOne({ email: input.email });
 
+  public static async loginUser(input: { email: string; password: string }) {
+    const parsedData = LoginSchema.parse(input);
+    const user = await UserModel.findOne({ email: parsedData.email });
+    // Even user doesn't exist, we can still process to slow down attackers
     const DUMMY_HASH =
       '$2b$10$K8V9L6Xp6z2QzR6eR6z2QeR6z2QeR6z2QeR6z2QeR6z2QeR6z2Qe';
 
@@ -191,9 +190,8 @@ class UserService {
     };
   }
 
-  // -------------------------
   // LOGOUT
-  // -------------------------
+
   public static async logout(accessToken: string) {
     const payload = await verifyAccessToken(accessToken);
 
@@ -211,9 +209,8 @@ class UserService {
     return { success: true };
   }
 
-  // -------------------------
   // REFRESH TOKEN
-  // -------------------------
+
   public static async refresh(refreshToken: string) {
     const payload = await verifyRefreshToken(refreshToken);
 

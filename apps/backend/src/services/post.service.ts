@@ -6,9 +6,8 @@ import { Types } from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 class PostService {
-  // -------------------------
   // CREATE POST
-  // -------------------------
+
   public static async createPost(input: {
     authorId: string;
     text?: string;
@@ -36,9 +35,8 @@ class PostService {
     return post;
   }
 
-  // -------------------------
   // GET FEED (ALL POSTS)
-  // -------------------------
+
   public static async getFeed(currentUserId: string) {
     const posts = await PostModel.find()
       .populate('author', 'username name avatarUrl')
@@ -68,9 +66,8 @@ class PostService {
     });
   }
 
-  // -------------------------
   // LIKE / UNLIKE POST
-  // -------------------------
+
   public static async toggleLike(postId: string, userId: string) {
     const post = await PostModel.findById(postId);
 
@@ -96,9 +93,9 @@ class PostService {
       likesCount: post.likes.length,
     };
   }
-  // -------------------------
+
   // ADD COMMENT
-  // -------------------------
+
   public static async addComment(
     postId: string,
     input: { userId: string; text: string }
@@ -138,9 +135,8 @@ class PostService {
     };
   }
 
-  // -------------------------
   // DELETE POST
-  // -------------------------
+
   public static async deletePost(postId: string, userId: string) {
     const post = await PostModel.findById(postId);
 

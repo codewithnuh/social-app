@@ -1,4 +1,3 @@
-// src/layouts/AuthLayout.tsx
 import { Outlet } from 'react-router-dom';
 import { createTheme, ThemeProvider, Box, Container } from '@mui/material';
 
@@ -7,10 +6,10 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2', // Classic Material Blue
+      main: '#1976d2',
     },
     background: {
-      default: '#f8fafc', // Clean, soft slate background
+      default: '#f8fafc',
       paper: '#ffffff',
     },
   },

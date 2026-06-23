@@ -8,8 +8,6 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import UploadService from '../services/upload.service';
 
 class UserController {
-  // REGISTER
-
   public static registerUser = async (req: Request, res: Response) => {
     const parsedData = UserSchema.safeParse(req.body);
 
@@ -21,8 +19,6 @@ class UserController {
 
     return ApiResponseUtil.success(res, user, 'User Created Successfully');
   };
-
-  // LOGIN
 
   public static loginUser = async (req: Request, res: Response) => {
     const parsedData = LoginSchema.safeParse(req.body);
@@ -36,14 +32,16 @@ class UserController {
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'none',
+      path: '/',
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'none',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -54,24 +52,32 @@ class UserController {
     );
   };
 
-  // LOGOUT
-
   public static logoutUser = async (req: Request, res: Response) => {
-    const token = req.cookies?.accessToken;
+    const accessToken = req.cookies?.accessToken;
+    const refreshToken = req.cookies?.refreshToken;
 
-    if (!token) {
+    if (!accessToken && !refreshToken) {
       throw new AppError(ERRORS.UNAUTHORIZED);
     }
 
-    const result = await UserService.logout(token);
+    const result = await UserService.logout(accessToken || refreshToken);
 
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
 
     return ApiResponseUtil.success(res, result, 'Logged out successfully');
   };
-
-  // REFRESH TOKEN
 
   public static refreshToken = async (req: Request, res: Response) => {
     const token = req.cookies?.refreshToken;
@@ -84,24 +90,22 @@ class UserController {
 
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       path: '/',
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
-      secure: false,
+      secure: true,
+      sameSite: 'none',
       path: '/',
-      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return ApiResponseUtil.success(res, { user: result }, 'Token refreshed');
   };
-
-  // UPDATE PROFILE
 
   public static updateProfile = async (
     req: AuthenticatedRequest,
@@ -125,8 +129,6 @@ class UserController {
     return ApiResponseUtil.success(res, updatedUser, 'Profile updated');
   };
 
-  // ME
-
   public static me = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
 
@@ -137,11 +139,9 @@ class UserController {
     return ApiResponseUtil.success(res, result, 'Current user');
   };
 
-  // DELETE ACCOUNT
-
   public static deleteAccount = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
-    const token = req.cookies?.accessToken;
+    const token = req.cookies?.accessToken || req.cookies?.refreshToken;
 
     if (!userId || !token) {
       throw new AppError(ERRORS.UNAUTHORIZED);
@@ -149,13 +149,22 @@ class UserController {
 
     const result = await UserService.deleteAccount(userId, token);
 
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
 
     return ApiResponseUtil.success(res, result, 'Account deleted');
   };
-
-  // USERS
 
   public static getUserById = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;

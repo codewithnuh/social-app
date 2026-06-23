@@ -18,7 +18,7 @@ app.disable('x-powered-by');
 
 app.use(
   cors({
-    origin: 'https://social-app-frontend-liard.vercel.app',
+    origin: 'https://social-app.noorulhassan.com',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -1,129 +1,252 @@
-# social-posts
+# Social App
 
-Full-stack social media application with post creation, likes, comments, and JWT-based authentication.
+A full-stack social media application built with modern TypeScript tooling, focusing on scalable backend architecture, secure authentication, and clean frontend state management.
 
-## Stack
+The project demonstrates production-style patterns including layered backend design, shared validation schemas, and token-based authentication with refresh support.
 
-**Frontend** — React 19, TypeScript, Vite, TanStack Query, axios, React Router  
-**Backend** — Express 5, TypeScript, MongoDB (Mongoose), Redis, JWT (`jose`), Cloudinary  
-**Shared** — Zod schemas shared across apps via pnpm workspace  
-**Package manager** — pnpm 10.33.2 (workspace monorepo)
+---
+
+## Tech Stack
+
+### Frontend
+
+- React 19 (TypeScript)
+- Vite
+- React Router
+- TanStack Query
+- Axios
+- Material UI
+
+### Backend
+
+- Node.js + Express 5
+- TypeScript
+- MongoDB (Mongoose)
+- Redis (session + token blacklist)
+- JWT (via `jose`)
+- Cloudinary (image storage)
+- Multer (file uploads)
+
+### Shared Layer
+
+- Zod-based schema validation
+- Shared types across frontend and backend via pnpm workspace
+
+### Tooling
+
+- pnpm workspace monorepo
+- ESLint + Prettier
+
+---
+
+## Architecture Overview
+
+The backend follows a strict layered architecture:
+
+- **Routes**: Define API endpoints
+- **Controllers**: Handle HTTP requests and responses
+- **Services**: Contain core business logic
+- **Middleware**: Authentication, validation, uploads
+- **Utils**: Reusable helpers (JWT, Redis, error handling, Cloudinary)
+
+Shared schemas ensure consistent validation across the entire system.
+
+---
+
+## Features
+
+### Authentication System
+
+- JWT-based authentication (access + refresh tokens)
+- Secure HTTP-only cookies for refresh tokens
+- Automatic token refresh flow
+- Redis-based token blacklist for logout invalidation
+
+### Social Features
+
+- Create, read, and delete posts
+- Like/unlike posts
+- Comment system
+- Feed-based post retrieval
+
+### Media Handling
+
+- Image upload support via Multer
+- Cloudinary integration for storage
+- Temporary file cleanup after upload
+
+### Frontend Experience
+
+- Protected routes with authentication guard
+- Persistent session handling
+- Optimistic UI updates via React Query
+- Responsive UI components using Material UI
+
+---
 
 ## Project Structure
 
 ```
-social-posts/
-├── apps/
-│   ├── backend/          # Express API server
-│   │   ├── src/
-│   │   │   ├── config/   # DB connection, env config
-│   │   │   ├── models/   # Mongoose schemas (User, Post)
-│   │   │   ├── routes/   # User & Post routes
-│   │   │   ├── controller/
-│   │   │   ├── services/ # Business logic
-│   │   │   ├── middleware/ # Auth, upload
-│   │   │   └── utils/    # Error handling, JWT, Redis, Cloudinary
-│   │   └── package.json
-│   └── frontend/         # React + Vite client
-│       └── src/
-│           ├── App.tsx
-│           ├── main.tsx
-│           └── main.tsx
-├── packages/
-│   └── shared/           # Shared Zod schemas & types
-└── pnpm-workspace.yaml
+apps/
+  backend/
+    src/
+      config/
+      models/
+      routes/
+      controllers/
+      services/
+      middleware/
+      utils/
+
+  frontend/
+    src/
+      components/
+      hooks/
+      pages/
+      utils/
+
+packages/
+  shared/
+    src/
+      schemas/
+      utils/
 ```
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18
-- pnpm 10.33.2
-- MongoDB (local or Atlas)
-- Redis (local or cloud)
+- Node.js 18+
+- pnpm 10+
+- MongoDB (local or cloud)
+- Redis (local or managed instance)
 
-### Install
+---
+
+### Installation
 
 ```bash
 pnpm install
 ```
 
+---
+
 ### Environment Variables
 
-Create `apps/backend/.env` based on the following variables:
+Create `apps/backend/.env`:
 
-| Variable                | Required | Description                                 |
-| ----------------------- | -------- | ------------------------------------------- |
-| `PORT`                  | No       | Server port (default: `5000`)               |
-| `NODE_ENV`              | No       | Environment (default: `development`)        |
-| `MONGO_URI`             | Yes      | MongoDB connection string                   |
-| `REDIS_URI`             | Yes      | Redis connection string                     |
-| `JWT_ACCESS_SECRET`     | Yes      | Access token signing secret                 |
-| `JWT_REFRESH_SECRET`    | Yes      | Refresh token signing secret                |
-| `ACCESS_TOKEN_TTL`      | No       | Access token expiry (default: `15m`)        |
-| `REFRESH_TOKEN_TTL`     | No       | Refresh token expiry (default: `7d`)        |
-| `JWT_ISSUER`            | No       | Token issuer (default: `your-app-name.com`) |
-| `JWT_AUDIENCE`          | No       | Token audience (default: `your-app-client`) |
-| `CLOUDINARY_CLOUD_NAME` | Yes      | Cloudinary cloud name                       |
-| `CLOUDINARY_API_KEY`    | Yes      | Cloudinary API key                          |
-| `CLOUDINARY_API_SECRET` | Yes      | Cloudinary API secret                       |
-
-A `.env.example` is provided at `apps/backend/.env.example`.
-
-### Run
-
-```bash
-# Start both frontend and backend concurrently
-pnpm dev
-
-# Start individually
-pnpm dev:backend   # Backend on http://localhost:5000
-pnpm dev:frontend  # Frontend on http://localhost:5173
+```
+MONGO_URI=
+REDIS_URI=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+ACCESS_TOKEN_TTL=15m
+REFRESH_TOKEN_TTL=7d
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 ```
 
-### Scripts
+---
 
-| Command             | Description                 |
-| ------------------- | --------------------------- |
-| `pnpm dev`          | Start both apps in parallel |
-| `pnpm dev:frontend` | Start frontend only         |
-| `pnpm dev:backend`  | Start backend only          |
-| `pnpm build`        | Build all packages          |
-| `pnpm lint`         | Run ESLint across workspace |
-| `pnpm format`       | Format code with Prettier   |
+## Running the Application
 
-## API Reference
+### Development Mode
+
+```bash
+pnpm dev
+```
+
+### Run Individual Apps
+
+```bash
+pnpm dev:frontend
+pnpm dev:backend
+```
+
+### Production Build
+
+```bash
+pnpm build
+```
+
+### Linting
+
+```bash
+pnpm lint
+```
+
+---
+
+## API Overview
 
 Base URL: `/api/v1`
 
-### Auth
+### Auth Routes
 
-| Method   | Endpoint         | Auth | Description                               |
-| -------- | ---------------- | ---- | ----------------------------------------- |
-| `POST`   | `/auth/register` | No   | Register new user                         |
-| `POST`   | `/auth/login`    | No   | Login, returns access & refresh tokens    |
-| `POST`   | `/auth/refresh`  | No   | Refresh access token                      |
-| `POST`   | `/auth/logout`   | Yes  | Invalidate access token (Redis blacklist) |
-| `PATCH`  | `/auth/profile`  | Yes  | Update profile (name, password, avatar)   |
-| `DELETE` | `/auth/delete`   | Yes  | Delete account (cascades to posts)        |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /auth/register | No | Create new account |
+| POST | /auth/login | No | Authenticate user |
+| POST | /auth/refresh | No | Refresh access token |
+| POST | /auth/logout | Yes | Logout user |
+| PATCH | /auth/profile | Yes | Update user profile |
+| DELETE | /auth/delete | Yes | Delete account |
 
-### Posts
+---
 
-| Method   | Endpoint                | Auth | Description                     |
-| -------- | ----------------------- | ---- | ------------------------------- |
-| `POST`   | `/post`                 | Yes  | Create post (text and/or image) |
-| `GET`    | `/post/feed`            | No   | Retrieve all posts              |
-| `PATCH`  | `/post/:postId/like`    | Yes  | Toggle like on post             |
-| `POST`   | `/post/:postId/comment` | Yes  | Add comment to post             |
-| `DELETE` | `/post/:postId`         | Yes  | Delete own post                 |
+### Post Routes
 
-A Postman collection is included at `/postman.json`.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /post | Yes | Create a post |
+| GET | /post/feed | No | Get posts feed |
+| PATCH | /post/:id/like | Yes | Toggle like |
+| POST | /post/:id/comment | Yes | Add comment |
+| DELETE | /post/:id | Yes | Delete post |
 
-## Architecture Notes
+---
 
-- **Layered backend**: routes → controllers → services. Controllers handle HTTP concerns; services contain business logic.
-- **Validation**: Request payloads validated with Zod. Shared schemas live in `packages/shared` and are consumed by both client and server.
-- **Error handling**: Centralized error handling via `AppError` and an async wrapper — no unhandled promise rejections in routes.
-- **Auth**: JWT access tokens (short-lived) + refresh tokens (HTTP-only cookies). Revoked tokens stored in Redis.
-- **File uploads**: Images uploaded to Cloudinary via Multer middleware. No local filesystem storage.
+## Design Principles
+
+### 1. Separation of Concerns
+
+Backend logic is split into controllers and services to ensure maintainability and scalability.
+
+### 2. Shared Validation Layer
+
+Zod schemas are shared between frontend and backend to avoid duplication and ensure consistency.
+
+### 3. Secure Authentication Flow
+
+- Short-lived access tokens
+- Refresh tokens stored in HTTP-only cookies
+- Redis-backed logout invalidation
+
+### 4. Media Handling Pipeline
+
+Uploads flow through Multer → Cloudinary → temporary file cleanup.
+
+### 5. Centralized Error Handling
+
+All errors are handled through a unified error utility for consistent API responses.
+
+---
+
+## Deployment
+
+- Frontend: Vercel (SPA routing enabled)
+- Backend: Render
+- Ensure environment variables are properly configured on both platforms
+
+---
+
+## Status
+
+This project is actively developed with a focus on:
+
+- Production-ready backend patterns
+- Scalable authentication architecture
+- Real-world full-stack workflow design

@@ -35,6 +35,6 @@ router.get(
   authMiddleware,
   asyncHandler(UserController.getUserById)
 );
-
+router.get('/me', authMiddleware, asyncHandler(UserController.me));
 router.get('/all', authMiddleware, asyncHandler(UserController.getAllUsers));
 export default router;

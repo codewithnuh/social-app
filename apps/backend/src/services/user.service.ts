@@ -98,6 +98,23 @@ class UserService {
       updatedAt: user.updatedAt,
     }));
   }
+  public static async getCurrentUser(userId: string) {
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      throw new AppError(ERRORS.NOT_FOUND);
+    }
+
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
   // -------------------------
   // UPDATE PROFILE (name + avatar only)
   // -------------------------

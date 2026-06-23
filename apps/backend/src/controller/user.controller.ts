@@ -88,7 +88,21 @@ class UserController {
 
     return ApiResponseUtil.success(res, result, 'Profile updated successfully');
   };
+  public static me = async (req: Request, res: Response) => {
+    const user = req.user;
 
+    if (!user) {
+      throw new AppError(ERRORS.UNAUTHORIZED);
+    }
+
+    const result = await UserService.getCurrentUser(user.id);
+
+    return ApiResponseUtil.success(
+      res,
+      result,
+      'Current user fetched successfully'
+    );
+  };
   // -------------------------
   // DELETE ACCOUNT
   // -------------------------

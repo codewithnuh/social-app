@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   IconButton,
   Stack,
@@ -23,6 +22,7 @@ import {
   ThumbUpOutlined,
   ThumbUp,
   ChatBubbleOutlined,
+  Send as SendIcon,
 } from '@mui/icons-material';
 
 import type { CommentType, PostType } from './types';
@@ -34,14 +34,36 @@ type Props = {
   post: PostType;
 };
 
+function getSafeAuthor(author: PostType['author'] | undefined) {
+  const name =
+    author?.name?.trim() || author?.username?.trim() || 'Unknown User';
+  const username = author?.username?.trim() || 'unknown';
+  const avatarUrl = author?.avatarUrl?.trim() || undefined;
+  const initial = name.charAt(0).toUpperCase() || '?';
+
+  return { name, username, avatarUrl, initial };
+}
+
+function getSafeCommentUser(commentUser: CommentType['user'] | undefined) {
+  const name =
+    commentUser?.name?.trim() ||
+    commentUser?.username?.trim() ||
+    'Unknown User';
+  const initial = name.charAt(0).toUpperCase() || '?';
+  return { name, initial };
+}
+
 export default function PostCard({ post }: Props) {
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [imageError, setImageError] = useState(false);
   const { data: user } = useUser();
 
   const toggleLike = useToggleLike();
   const addComment = useAddComment();
   const queryClient = useQueryClient();
+
+  const author = getSafeAuthor(post.author);
 
   const handleLikeToggle = () => {
     const postId = post._id;
@@ -111,74 +133,141 @@ export default function PostCard({ post }: Props) {
   return (
     <>
       <Card
-        sx={{ borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1px solid',
+          borderColor: 'grey.200',
+          transition: 'box-shadow 0.2s ease',
+          '&:hover': {
+            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+          },
+        }}
       >
         <CardHeader
           avatar={
             <Avatar
-              src={
-                post.author.avatarUrl || ' https://placehold.net/400x400.png'
-              }
+              src={author.avatarUrl}
+              sx={{
+                width: 44,
+                height: 44,
+                bgcolor: 'primary.main',
+                fontWeight: 600,
+              }}
             >
-              {post.author.name?.[0] || post.author.username?.[0]}
+              {author.initial}
             </Avatar>
           }
           action={
-            <IconButton>
-              <MoreVertIcon />
+            <IconButton size="small">
+              <MoreVertIcon fontSize="small" />
             </IconButton>
           }
           title={
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              {post.author.name}
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, lineHeight: 1.3 }}
+            >
+              {author.name}
             </Typography>
           }
-          subheader={`@${post.author.username}`}
+          subheader={
+            <Typography variant="caption" color="text.secondary">
+              @{author.username}
+            </Typography>
+          }
+          sx={{ pb: 1 }}
         />
 
-        <CardContent sx={{ pt: 0, px: 3 }}>
-          <Typography>{post.text}</Typography>
+        <CardContent sx={{ pt: 0, pb: post.image ? 1 : 2, px: 3 }}>
+          {post.text && (
+            <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+              {post.text}
+            </Typography>
+          )}
 
-          {post.image && (
-            <Box sx={{ mt: 2 }}>
+          {post.image && !imageError && (
+            <Box
+              sx={{
+                mt: 2,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                bgcolor: 'grey.100',
+                maxHeight: 480,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
               <img
-                alt={post.text?.slice(0, 10)}
+                alt={post.text?.slice(0, 40) || 'Post image'}
                 src={post.image}
-                style={{ width: '100%' }}
+                onError={() => setImageError(true)}
+                style={{
+                  width: '100%',
+                  maxHeight: 480,
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
               />
+            </Box>
+          )}
+
+          {post.image && imageError && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: '12px',
+                bgcolor: 'grey.100',
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Image couldn't be loaded
+              </Typography>
             </Box>
           )}
         </CardContent>
 
-        <Divider />
+        <Divider sx={{ mx: 2 }} />
 
-        <CardActions sx={{ px: 2, py: 0.5 }}>
+        <CardActions sx={{ px: 2, py: 0.5, gap: 0.5 }}>
           <Button
             onClick={handleLikeToggle}
             startIcon={
               post.isLiked ? (
-                <ThumbUp sx={{ color: '#1976d2' }} />
+                <ThumbUp sx={{ fontSize: 18, color: 'primary.main' }} />
               ) : (
-                <ThumbUpOutlined />
+                <ThumbUpOutlined sx={{ fontSize: 18 }} />
               )
             }
+            size="small"
             sx={{
               textTransform: 'none',
-              color: post.isLiked ? '#1976d2' : 'text.secondary',
-              fontWeight: post.isLiked ? 600 : 400,
+              borderRadius: '8px',
+              color: post.isLiked ? 'primary.main' : 'text.secondary',
+              fontWeight: post.isLiked ? 600 : 500,
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
-            {post.isLiked
-              ? `Liked (${post.likesCount})`
-              : `Like (${post.likesCount})`}
+            {post.isLiked ? 'Liked' : 'Like'}
+            {post.likesCount > 0 && ` · ${post.likesCount}`}
           </Button>
 
           <Button
-            startIcon={<ChatBubbleOutlined />}
-            sx={{ textTransform: 'none', color: 'text.secondary' }}
+            startIcon={<ChatBubbleOutlined sx={{ fontSize: 18 }} />}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              borderRadius: '8px',
+              color: 'text.secondary',
+              fontWeight: 500,
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
             onClick={() => setCommentOpen(true)}
           >
-            Comment ({post.commentsCount})
+            Comment
+            {post.commentsCount > 0 && ` · ${post.commentsCount}`}
           </Button>
         </CardActions>
       </Card>
@@ -188,56 +277,108 @@ export default function PostCard({ post }: Props) {
         onClose={() => setCommentOpen(false)}
         fullWidth
         maxWidth="sm"
+        sx={{ borderRadius: '16px' }}
       >
-        <DialogTitle>Comments</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          Comments
+          {post.commentsCount > 0 && (
+            <Typography
+              component="span"
+              variant="body2"
+              color="text.secondary"
+              sx={{ ml: 1 }}
+            >
+              ({post.commentsCount})
+            </Typography>
+          )}
+        </DialogTitle>
 
-        <DialogContent dividers>
-          <DialogContentText sx={{ mb: 2 }}>
-            @{post.author.username}
-          </DialogContentText>
-
+        <DialogContent dividers sx={{ px: 3 }}>
           <Stack spacing={1.5} sx={{ mb: 2 }}>
             {post.comments.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No comments yet.
-              </Typography>
+              <Box sx={{ py: 4, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No comments yet. Be the first to say something.
+                </Typography>
+              </Box>
             ) : (
               post.comments.map(comment => {
                 const isMine = comment.user?._id === user?.id;
+                const commentUser = getSafeCommentUser(comment.user);
 
                 return (
                   <Box
                     key={comment._id}
-                    sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 2 }}
+                    sx={{
+                      display: 'flex',
+                      gap: 1.5,
+                      alignItems: 'flex-start',
+                    }}
                   >
-                    <Typography sx={{ fontWeight: 600 }}>
-                      {isMine ? 'You' : comment.user?.name}
-                    </Typography>
-                    <Typography variant="body2">{comment.text}</Typography>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        fontSize: 14,
+                        bgcolor: isMine ? 'primary.main' : 'grey.500',
+                      }}
+                    >
+                      {commentUser.initial}
+                    </Avatar>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: isMine ? 'primary.50' : 'grey.100',
+                        borderRadius: '12px',
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+                        {isMine ? 'You' : commentUser.name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ wordBreak: 'break-word' }}
+                      >
+                        {comment.text}
+                      </Typography>
+                    </Box>
                   </Box>
                 );
               })
             )}
           </Stack>
 
-          <TextField
-            fullWidth
-            multiline
-            minRows={3}
-            placeholder="Write your comment..."
-            value={commentText}
-            onChange={e => setCommentText(e.target.value)}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={4}
+              placeholder="Write your comment..."
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              }}
+            />
+            <IconButton
+              color="primary"
+              disabled={!commentText.trim()}
+              onClick={handleCommentSubmit}
+              sx={{ mb: 0.5 }}
+            >
+              <SendIcon />
+            </IconButton>
+          </Box>
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={() => setCommentOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, py: 2 }}>
           <Button
-            variant="contained"
-            disabled={!commentText.trim()}
-            onClick={handleCommentSubmit}
+            onClick={() => setCommentOpen(false)}
+            sx={{ textTransform: 'none' }}
           >
-            Post
+            Close
           </Button>
         </DialogActions>
       </Dialog>

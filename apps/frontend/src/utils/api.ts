@@ -1,23 +1,17 @@
-// src/utils/api.ts
-const BASE_URL = 'http://localhost:5000';
-
-// Operational states for managing silent token refreshment cycles
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 let isRefreshing = false;
-let refreshSubscribers: (() => void)[] = [];
+let refreshQueue: Array<() => void> = [];
 
-function onTokenRefreshed() {
-  refreshSubscribers.forEach(cb => cb());
-  refreshSubscribers = [];
+function resolveQueue() {
+  refreshQueue.forEach(cb => cb());
+  refreshQueue = [];
 }
 
-function addRefreshSubscriber(cb: () => void) {
-  refreshSubscribers.push(cb);
+function addToQueue(cb: () => void) {
+  refreshQueue.push(cb);
 }
 
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function baseFetch<T>(endpoint: string, options: RequestInit) {
   const url = `${BASE_URL}${endpoint}`;
 
   const headers: Record<string, string> = {
@@ -28,45 +22,58 @@ export async function apiRequest<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  // Ensure cross-origin cookies are always transmitted implicitly
-  options.credentials = options.credentials || 'include';
+  const res = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
 
-  const response = await fetch(url, { ...options, headers });
+  const data = await res.json().catch(() => null);
 
-  // Intercept 401 Unauthorized errors to initiate an automatic token refresh cycle
-  if (
-    response.status === 401 &&
-    endpoint !== '/api/v1/auth/refresh' &&
-    endpoint !== '/api/v1/auth/login'
-  ) {
+  if (!res.ok) {
+    throw new Error(data?.message || 'Request failed');
+  }
+
+  return data as T;
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  try {
+    return await baseFetch<T>(endpoint, options);
+  } catch (err) {
+    let isAuthError = false;
+    if (err instanceof Error) {
+      isAuthError = err?.message?.includes('401');
+    }
+    if (
+      !isAuthError ||
+      endpoint === '/api/v1/auth/login' ||
+      endpoint === '/api/v1/auth/refresh'
+    ) {
+      throw err;
+    }
+
     if (!isRefreshing) {
       isRefreshing = true;
 
       try {
-        // Hit your backend refresh endpoint to rotate cookies silently
-        await apiRequest('/api/v1/auth/refresh', { method: 'POST' });
+        await baseFetch('/api/v1/auth/refresh', { method: 'POST' });
         isRefreshing = false;
-        onTokenRefreshed();
-      } catch (refreshError) {
+        resolveQueue();
+      } catch (refreshErr) {
         isRefreshing = false;
-        refreshSubscribers = [];
-        throw refreshError; // Refresh token expired or invalid -> Drops to hook catch block
+        refreshQueue = [];
+        throw refreshErr;
       }
     }
 
-    // Queue up matching async operations and release them once the token rotates successfully
     return new Promise<T>((resolve, reject) => {
-      addRefreshSubscriber(() => {
-        apiRequest<T>(endpoint, options).then(resolve).catch(reject);
+      addToQueue(() => {
+        baseFetch<T>(endpoint, options).then(resolve).catch(reject);
       });
     });
   }
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message || 'Something went wrong');
-  }
-
-  return data as T;
 }

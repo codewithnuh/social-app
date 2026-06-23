@@ -7,7 +7,6 @@ export default defineConfig({
 
   server: {
     proxy: {
-      // Whenever fetch('/api/...') is called in frontend, forward it here
       '/api/': {
         target: 'http://localhost:5000', // Change this to your backend server URL
         changeOrigin: true,

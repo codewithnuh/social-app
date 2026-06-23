@@ -5,16 +5,18 @@ import CreatePostCard from '../components/Dashboard/CreateCardPost';
 import FeedTabs from '../components/Dashboard/FeedTabs';
 import PostsPagination from '../components/Dashboard/Pagination';
 import PostCard from '../components/Dashboard/PostCard';
+
 import { useFeed, useCreatePost } from '../hooks/usePosts';
-import { useUser } from '../hooks/useUser';
+import { useUser, useUpdateProfile } from '../hooks/useUser';
 
 export default function Dashboard() {
   const { data: posts, isLoading } = useFeed();
+  const { data: user } = useUser();
+  const updateProfile = useUpdateProfile();
   const createPost = useCreatePost();
 
   const [currentTab, setCurrentTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: user } = useUser();
   const [page, setPage] = useState(1);
 
   const postsPerPage = 5;
@@ -74,8 +76,13 @@ export default function Dashboard() {
     );
   };
 
-  // reset to page 1 whenever the tab changes — avoids landing on an empty page
-  // when switching filters shrinks the result set
+  const handleProfileUpdate = (data: {
+    name?: string;
+    avatar?: File | null;
+  }) => {
+    updateProfile.mutate(data);
+  };
+
   const handleTabChange = (val: number) => {
     setCurrentTab(val);
     setPage(1);
@@ -93,15 +100,12 @@ export default function Dashboard() {
     });
 
     if (currentTab === 1) {
-      // "For You" — placeholder personalization: exclude your own posts
       result = result.filter(post => post.author?._id !== user?.id);
     } else if (currentTab === 2) {
-      // "Most Liked" — sort by likesCount desc, don't mutate original array
       result = [...result].sort(
         (a, b) => (b.likesCount ?? 0) - (a.likesCount ?? 0)
       );
     }
-    // currentTab === 0 ("All Posts") — no extra filtering
 
     return result;
   }, [postsArray, searchQuery, currentTab, user?.id]);
@@ -121,8 +125,9 @@ export default function Dashboard() {
           name: user?.name || 'John Doe',
           email: user?.email || 'mail@example.com',
           username: user?.username || 'username',
+          avatarUrl: user?.avatarUrl,
         }}
-        onProfileSave={() => {}}
+        onProfileSave={handleProfileUpdate}
         onSearchChange={setSearchQuery}
         anchorEl={anchorEl}
         onMenuOpen={handleMenuOpen}

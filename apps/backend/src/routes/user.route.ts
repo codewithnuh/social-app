@@ -2,6 +2,7 @@ import { Router } from 'express';
 import UserController from '../controller/user.controller';
 import { asyncHandler } from '../utils/async-handler';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { upload } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -20,8 +21,9 @@ router.post('/refresh', asyncHandler(UserController.refreshToken));
 router.post('/logout', authMiddleware, asyncHandler(UserController.logoutUser));
 
 router.patch(
-  '/profile',
+  '/user/profile',
   authMiddleware,
+  upload.single('image'),
   asyncHandler(UserController.updateProfile)
 );
 

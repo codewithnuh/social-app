@@ -1,6 +1,8 @@
 // src/hooks/useUser.ts
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../utils/api';
+import type { UpdateProfileDTO } from '../utils/user.api';
+import { logoutUser, updateProfile } from '../utils/user.api';
 
 interface User {
   id: string;
@@ -35,6 +37,37 @@ export function useUser() {
     queryKey: ['user'],
     queryFn: fetchCurrentUser,
     retry: false, // Prevents infinite loops if both tokens are completely dead
-    staleTime: 1000 * 60 * 5, // Keeps your auth status cached comfortably for 5 minutes
+    staleTime: 1000 * 60 * 10, // IMPORTANT: 10 min cache
+    gcTime: 1000 * 60 * 30, // keeps cache alive
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: false,
+  });
+}
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateProfileDTO) => updateProfile(data),
+
+    onSuccess: res => {
+      queryClient.setQueryData(['user'], res.data);
+    },
+  });
+}
+
+export function useLogout() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: logoutUser,
+
+    onSuccess: () => {
+      // clear user cache
+      queryClient.setQueryData(['user'], null);
+
+      // optional full reset
+      queryClient.clear();
+    },
   });
 }

@@ -24,11 +24,14 @@ import {
   PhotoCamera,
 } from '@mui/icons-material';
 
+import { useLogout } from '../../hooks/useUser'; // 👈 ADD THIS
+
 type ProfileData = {
   name: string;
   username: string;
   email: string;
   avatarUrl?: string;
+  avatar?: File | null;
 };
 
 type Props = {
@@ -57,23 +60,40 @@ export default function DashboardHeader({
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(
     profile.avatarUrl
   );
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  // ✅ LOGOUT HOOK
+  const logout = useLogout();
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setAvatarPreview(url);
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleSave = () => {
     onProfileSave({
-      ...profile,
       name,
+      username: profile.username,
+      email: profile.email,
       avatarUrl: avatarPreview,
+      avatar: avatarFile,
     });
+
     setProfileOpen(false);
     onMenuClose();
+  };
+
+  const handleLogout = () => {
+    logout.mutate(undefined, {
+      onSuccess: () => {
+        onMenuClose();
+        // optional: redirect
+        window.location.href = '/login';
+      },
+    });
   };
 
   return (
@@ -100,14 +120,9 @@ export default function DashboardHeader({
       >
         <Typography
           variant="h5"
-          sx={{
-            fontWeight: 700,
-            color: 'primary.main',
-            letterSpacing: '-0.5px',
-            flexShrink: 0,
-          }}
+          sx={{ fontWeight: 700, color: 'primary.main' }}
         >
-          Social
+          Social App
         </Typography>
 
         <TextField
@@ -133,13 +148,8 @@ export default function DashboardHeader({
           }}
         />
 
-        <IconButton onClick={onMenuOpen} sx={{ flexShrink: 0 }}>
-          <Avatar
-            src={profile.avatarUrl}
-            sx={{ bgcolor: 'secondary.main', width: 36, height: 36 }}
-          >
-            {profile.name?.[0] || 'M'}
-          </Avatar>
+        <IconButton onClick={onMenuOpen}>
+          <Avatar src={profile.avatarUrl}>{profile.name?.[0] || 'U'}</Avatar>
         </IconButton>
 
         <Menu
@@ -150,47 +160,38 @@ export default function DashboardHeader({
           transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         >
           <MenuItem onClick={() => setProfileOpen(true)}>
-            <ManageAccounts sx={{ mr: 1.5, fontSize: 20 }} />
+            <ManageAccounts sx={{ mr: 1.5 }} />
             Update Profile Info
           </MenuItem>
+
           <Divider />
-          <MenuItem onClick={onMenuClose} sx={{ color: 'error.main' }}>
-            <Logout sx={{ mr: 1.5, fontSize: 20 }} />
+
+          {/* ✅ FIXED LOGOUT */}
+          <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+            <Logout sx={{ mr: 1.5 }} />
             Logout
           </MenuItem>
         </Menu>
 
+        {/* PROFILE DIALOG */}
         <Dialog
           open={profileOpen}
           onClose={() => setProfileOpen(false)}
           fullWidth
-          maxWidth="sm"
         >
           <DialogTitle>Update Profile</DialogTitle>
+
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Avatar
-                  src={avatarPreview}
-                  sx={{ width: 88, height: 88, fontSize: 32 }}
-                >
-                  {name?.[0] || 'M'}
+                <Avatar src={avatarPreview} sx={{ width: 88, height: 88 }}>
+                  {name?.[0] || 'U'}
                 </Avatar>
               </Box>
 
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<PhotoCamera />}
-                sx={{ textTransform: 'none' }}
-              >
+              <Button component="label" startIcon={<PhotoCamera />}>
                 Change Profile Photo
-                <input
-                  hidden
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                />
+                <input hidden type="file" onChange={handleAvatarChange} />
               </Button>
 
               <TextField
@@ -204,32 +205,21 @@ export default function DashboardHeader({
                 label="Username"
                 value={profile.username}
                 fullWidth
-                slotProps={{
-                  input: {
-                    readOnly: true,
-                  },
-                }}
+                slotProps={{ input: { readOnly: true } }}
               />
-
               <TextField
                 label="Email"
                 value={profile.email}
                 fullWidth
-                slotProps={{
-                  input: {
-                    readOnly: true,
-                  },
-                }}
+                slotProps={{ input: { readOnly: true } }}
               />
             </Stack>
           </DialogContent>
 
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button onClick={() => setProfileOpen(false)} color="inherit">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} variant="contained">
-              Save Changes
+          <DialogActions>
+            <Button onClick={() => setProfileOpen(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSave}>
+              Save
             </Button>
           </DialogActions>
         </Dialog>

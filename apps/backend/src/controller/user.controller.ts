@@ -4,6 +4,8 @@ import UserService from '../services/user.service';
 import { ApiResponseUtil } from '../utils/api-response';
 import { AppError } from '../utils/app-error';
 import { ERRORS } from '../constants/errors';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import UploadService from '../services/upload.service';
 
 class UserController {
   // -------------------------
@@ -106,14 +108,26 @@ class UserController {
   // -------------------------
   // UPDATE PROFILE
   // -------------------------
-  public static updateProfile = async (req: Request, res: Response) => {
-    const userId = (req as any).user?.id;
+  public static updateProfile = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ) => {
+    const user = req.user;
+    if (!user) throw new AppError(ERRORS.UNAUTHORIZED);
 
-    if (!userId) throw new AppError(ERRORS.UNAUTHORIZED);
+    let avatarUrl: string | undefined;
 
-    const result = await UserService.updateProfile(userId, req.body);
+    if (req.file?.path) {
+      const uploadResult = await UploadService.uploadImage(req.file.path);
+      avatarUrl = uploadResult.url;
+    }
 
-    return ApiResponseUtil.success(res, result, 'Profile updated');
+    const updatedUser = await UserService.updateProfile(user.id, {
+      name: req.body.name,
+      avatarUrl,
+    });
+
+    return ApiResponseUtil.success(res, updatedUser, 'Profile updated');
   };
 
   // -------------------------

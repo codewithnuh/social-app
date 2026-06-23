@@ -18,6 +18,24 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+type LoginResponse = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    username: string;
+    avatarUrl?: string;
+  };
+  accessToken: string;
+  refreshToken: string;
+};
+
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -29,19 +47,20 @@ export default function Login() {
 
   const loginMutation = useMutation({
     mutationFn: async (payload: z.infer<typeof loginSchema>) => {
-      return apiRequest<{
-        user: unknown;
-        accessToken: string;
-        refreshToken: string;
-      }>('/api/v1/auth/login', {
+      return apiRequest<ApiResponse<LoginResponse>>('/api/v1/auth/login', {
         method: 'POST',
         credentials: 'include',
         body: JSON.stringify(payload),
       });
     },
 
-    onSuccess: data => {
-      queryClient.setQueryData(['user'], data.user);
+    onSuccess: async res => {
+      // 🔥 source of truth = backend response
+      queryClient.setQueryData(['user'], res.data.user);
+
+      // optional: ensures full sync with /auth/me system
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+
       navigate('/dashboard', { replace: true });
     },
   });
@@ -52,16 +71,16 @@ export default function Login() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
-    console.log('SUBMIT FIRED 🔥'); //  add this
+
     const result = loginSchema.safeParse(data);
-    console.log(result);
+
     if (!result.success) {
       const errors: typeof formErrors = {};
       result.error.issues.forEach(issue => {
         const key = issue.path[0] as keyof typeof formErrors;
         errors[key] = issue.message;
       });
-      console.log(errors);
+
       setFormErrors(errors);
       return;
     }

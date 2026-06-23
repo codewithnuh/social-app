@@ -1,25 +1,37 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 import authRoutes from './routes/user.route';
 import postRoutes from './routes/post.route';
 import { globalErrorHandler } from './utils/global-error-handler';
-import cookieParser from 'cookie-parser';
+import { apiLimiter, authLimiter } from './middleware/rate-limiter.middleware';
+
 const app = express();
 
-// --------------------
+// Security middlewares
+
+app.use(helmet());
+app.disable('x-powered-by');
 // Core middlewares
-// --------------------
+
 app.use(
   cors({
-    origin: 'http://localhost:5173', // frontend URL (NOT '*')
+    origin: 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json());
+app.use(apiLimiter);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Safe JSON error handler
+
 app.use((err: any, req: any, res: any, next: any) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({
@@ -33,9 +45,6 @@ app.use((err: any, req: any, res: any, next: any) => {
   next(err);
 });
 
-// --------------------
-// Health check
-// --------------------
 app.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -44,15 +53,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// --------------------
-// Routes
-// --------------------
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/post', postRoutes);
 
-// --------------------
-// Global error handler (MUST be last middleware)
-// --------------------
 app.use(globalErrorHandler);
 
 export default app;

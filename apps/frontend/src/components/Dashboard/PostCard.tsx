@@ -16,6 +16,7 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
@@ -23,6 +24,7 @@ import {
   ThumbUp,
   ChatBubbleOutlined,
   Send as SendIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
 import type { CommentType, PostType } from './types';
@@ -49,11 +51,14 @@ function getSafeCommentUser(commentUser: CommentType['user'] | undefined) {
     commentUser?.name?.trim() ||
     commentUser?.username?.trim() ||
     'Unknown User';
+  const username = commentUser?.username?.trim() || 'unknown';
+  const avatarUrl = commentUser?.avatarUrl?.trim() || undefined;
   const initial = name.charAt(0).toUpperCase() || '?';
-  return { name, initial };
+  return { name, username, avatarUrl, initial };
 }
 
 export default function PostCard({ post }: Props) {
+  const theme = useTheme();
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [imageError, setImageError] = useState(false);
@@ -64,6 +69,7 @@ export default function PostCard({ post }: Props) {
   const queryClient = useQueryClient();
 
   const author = getSafeAuthor(post.author);
+  const postImage = post.image?.trim() || '';
 
   const handleLikeToggle = () => {
     const postId = post._id;
@@ -92,82 +98,48 @@ export default function PostCard({ post }: Props) {
 
   const handleCommentSubmit = () => {
     if (!commentText.trim()) return;
-
-    const newComment: CommentType = {
-      _id: Date.now().toString(),
-      text: commentText,
-      user: {
-        _id: user?.id ?? 'me',
-        username: user?.username ?? 'you',
-        name: user?.name ?? 'You',
-      },
-    };
-
-    const postId = post._id;
-
-    queryClient.setQueryData(
-      ['posts', 'feed'],
-      (old: PostType[] | undefined) => {
-        if (!old) return old;
-
-        return old.map(p => {
-          if (p._id !== postId) return p;
-
-          return {
-            ...p,
-            comments: [newComment, ...p.comments],
-            commentsCount: p.commentsCount + 1,
-          };
-        });
-      }
-    );
-
+    addComment.mutate({ postId: post._id, text: commentText });
     setCommentText('');
-
-    addComment.mutate({
-      postId,
-      text: commentText,
-    });
   };
 
   return (
     <>
       <Card
         sx={{
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-          border: '1px solid',
-          borderColor: 'grey.200',
-          transition: 'box-shadow 0.2s ease',
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+          transition: 'box-shadow 0.25s ease, transform 0.2s ease',
           '&:hover': {
-            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+            transform: 'translateY(-2px)',
           },
+          overflow: 'hidden',
         }}
       >
         <CardHeader
           avatar={
             <Avatar
               src={author.avatarUrl}
+              alt={author.name}
               sx={{
                 width: 44,
                 height: 44,
-                bgcolor: 'primary.main',
+                bgcolor: theme.palette.primary.main,
                 fontWeight: 600,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
               }}
             >
               {author.initial}
             </Avatar>
           }
           action={
-            <IconButton size="small">
+            <IconButton size="small" sx={{ color: 'text.secondary' }}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
           }
           title={
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, lineHeight: 1.3 }}
-            >
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               {author.name}
             </Typography>
           }
@@ -176,31 +148,46 @@ export default function PostCard({ post }: Props) {
               @{author.username}
             </Typography>
           }
-          sx={{ pb: 1 }}
+          sx={{
+            pb: 0.5,
+            pt: 2,
+            px: 3,
+          }}
         />
 
-        <CardContent sx={{ pt: 0, pb: post.image ? 1 : 2, px: 3 }}>
-          {post.text && (
-            <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+        <CardContent sx={{ pt: 1, pb: 1.5, px: 3 }}>
+          {post.text?.trim() ? (
+            <Typography
+              sx={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6,
+                fontSize: '0.95rem',
+              }}
+            >
               {post.text}
+            </Typography>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No caption provided.
             </Typography>
           )}
 
-          {post.image && !imageError && (
+          {postImage && !imageError && (
             <Box
               sx={{
                 mt: 2,
-                borderRadius: '12px',
+                borderRadius: 2,
                 overflow: 'hidden',
-                bgcolor: 'grey.100',
+                bgcolor: 'grey.50',
                 maxHeight: 480,
                 display: 'flex',
                 justifyContent: 'center',
+                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <img
                 alt={post.text?.slice(0, 40) || 'Post image'}
-                src={post.image}
+                src={postImage}
                 onError={() => setImageError(true)}
                 style={{
                   width: '100%',
@@ -212,14 +199,15 @@ export default function PostCard({ post }: Props) {
             </Box>
           )}
 
-          {post.image && imageError && (
+          {postImage && imageError && (
             <Box
               sx={{
                 mt: 2,
                 p: 2,
-                borderRadius: '12px',
-                bgcolor: 'grey.100',
+                borderRadius: 2,
+                bgcolor: 'grey.50',
                 textAlign: 'center',
+                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Typography variant="caption" color="text.secondary">
@@ -231,7 +219,7 @@ export default function PostCard({ post }: Props) {
 
         <Divider sx={{ mx: 2 }} />
 
-        <CardActions sx={{ px: 2, py: 0.5, gap: 0.5 }}>
+        <CardActions sx={{ px: 2, py: 1, gap: 0.5 }}>
           <Button
             onClick={handleLikeToggle}
             startIcon={
@@ -244,10 +232,14 @@ export default function PostCard({ post }: Props) {
             size="small"
             sx={{
               textTransform: 'none',
-              borderRadius: '8px',
+              borderRadius: 50,
+              px: 1.5,
+              py: 0.5,
               color: post.isLiked ? 'primary.main' : 'text.secondary',
               fontWeight: post.isLiked ? 600 : 500,
-              '&:hover': { bgcolor: 'action.hover' },
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
             }}
           >
             {post.isLiked ? 'Liked' : 'Like'}
@@ -259,10 +251,14 @@ export default function PostCard({ post }: Props) {
             size="small"
             sx={{
               textTransform: 'none',
-              borderRadius: '8px',
+              borderRadius: 50,
+              px: 1.5,
+              py: 0.5,
               color: 'text.secondary',
               fontWeight: 500,
-              '&:hover': { bgcolor: 'action.hover' },
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
             }}
             onClick={() => setCommentOpen(true)}
           >
@@ -272,30 +268,51 @@ export default function PostCard({ post }: Props) {
         </CardActions>
       </Card>
 
+      {/* Comment Dialog */}
       <Dialog
         open={commentOpen}
         onClose={() => setCommentOpen(false)}
         fullWidth
         maxWidth="sm"
-        sx={{ borderRadius: '16px' }}
+        sx={{
+          borderRadius: 3,
+          boxShadow: '0 12px 60px rgba(0,0,0,0.15)',
+        }}
       >
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          Comments
-          {post.commentsCount > 0 && (
-            <Typography
-              component="span"
-              variant="body2"
-              color="text.secondary"
-              sx={{ ml: 1 }}
-            >
-              ({post.commentsCount})
-            </Typography>
-          )}
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            pb: 1,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Box>
+            Comments
+            {post.commentsCount > 0 && (
+              <Typography
+                component="span"
+                variant="body2"
+                color="text.secondary"
+                sx={{ ml: 1, fontWeight: 400 }}
+              >
+                ({post.commentsCount})
+              </Typography>
+            )}
+          </Box>
+          <IconButton
+            onClick={() => setCommentOpen(false)}
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers sx={{ px: 3 }}>
+        <DialogContent dividers sx={{ px: 3, py: 2 }}>
           <Stack spacing={1.5} sx={{ mb: 2 }}>
-            {post.comments.length === 0 ? (
+            {(post.comments ?? []).length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
                   No comments yet. Be the first to say something.
@@ -303,7 +320,13 @@ export default function PostCard({ post }: Props) {
               </Box>
             ) : (
               post.comments.map(comment => {
-                const isMine = comment.user?._id === user?.id;
+                const isMine = comment.user?._id === user?._id;
+
+                console.log({
+                  isMine,
+                  commentUser: comment.user._id,
+                  currentUser: user,
+                });
                 const commentUser = getSafeCommentUser(comment.user);
 
                 return (
@@ -316,21 +339,31 @@ export default function PostCard({ post }: Props) {
                     }}
                   >
                     <Avatar
+                      src={commentUser.avatarUrl}
+                      alt={commentUser.name}
                       sx={{
                         width: 32,
                         height: 32,
                         fontSize: 14,
-                        bgcolor: isMine ? 'primary.main' : 'grey.500',
+                        bgcolor: isMine
+                          ? theme.palette.primary.main
+                          : theme.palette.grey[500],
                       }}
                     >
                       {commentUser.initial}
                     </Avatar>
+
                     <Box
                       sx={{
                         flex: 1,
                         p: 1.5,
-                        bgcolor: isMine ? 'primary.50' : 'grey.100',
-                        borderRadius: '12px',
+                        bgcolor: isMine
+                          ? theme.palette.primary.dark
+                          : theme.palette.grey[100],
+                        color: isMine ? 'white' : theme.palette.text.primary,
+                        borderRadius: 3,
+                        borderBottomLeftRadius: isMine ? 3 : 0,
+                        borderBottomRightRadius: isMine ? 0 : 3,
                       }}
                     >
                       <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
@@ -338,9 +371,9 @@ export default function PostCard({ post }: Props) {
                       </Typography>
                       <Typography
                         variant="body2"
-                        sx={{ wordBreak: 'break-word' }}
+                        sx={{ wordBreak: 'break-word', mt: 0.25 }}
                       >
-                        {comment.text}
+                        {comment.text || 'No comment text'}
                       </Typography>
                     </Box>
                   </Box>
@@ -358,25 +391,52 @@ export default function PostCard({ post }: Props) {
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
               size="small"
+              variant="outlined"
               sx={{
-                '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  bgcolor: 'action.hover',
+                },
+              }}
+              slotProps={{
+                input: {
+                  sx: { py: 0.5 },
+                },
               }}
             />
             <IconButton
               color="primary"
               disabled={!commentText.trim()}
               onClick={handleCommentSubmit}
-              sx={{ mb: 0.5 }}
+              sx={{
+                mb: 0.5,
+                bgcolor: commentText.trim()
+                  ? theme.palette.primary.main
+                  : 'action.disabledBackground',
+                color: commentText.trim() ? 'white' : 'text.disabled',
+                '&:hover': {
+                  bgcolor: commentText.trim()
+                    ? theme.palette.primary.dark
+                    : 'action.disabledBackground',
+                },
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+              }}
             >
-              <SendIcon />
+              <SendIcon fontSize="small" />
             </IconButton>
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions sx={{ px: 3, py: 1.5 }}>
           <Button
             onClick={() => setCommentOpen(false)}
-            sx={{ textTransform: 'none' }}
+            sx={{
+              textTransform: 'none',
+              borderRadius: 50,
+              color: 'text.secondary',
+            }}
           >
             Close
           </Button>

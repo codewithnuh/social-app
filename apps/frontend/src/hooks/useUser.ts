@@ -4,7 +4,7 @@ import type { UpdateProfileDTO } from '../utils/user.api';
 import { logoutUser, updateProfile } from '../utils/user.api';
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   username: string;

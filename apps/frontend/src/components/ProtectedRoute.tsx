@@ -1,31 +1,49 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '../hooks/useUser';
-import { CircularProgress, Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 
 export function ProtectedRoute() {
-  const { data: user, isLoading } = useUser();
+  const location = useLocation();
+  const { data: user, isLoading, refetch } = useUser();
+  const [checking, setChecking] = useState(true);
 
-  // Show a clean global loading spinner while checking auth status
-  if (isLoading) {
+  useEffect(() => {
+    let mounted = true;
+
+    const run = async () => {
+      try {
+        await refetch();
+      } finally {
+        if (mounted) setChecking(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      mounted = false;
+    };
+  }, [refetch]);
+
+  if (checking && isLoading) {
     return (
       <Box
         sx={{
-          display: 'flex',
-          height: '100vh',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'fixed',
+          right: 16,
+          bottom: 16,
+          zIndex: 1300,
         }}
       >
-        <CircularProgress color="primary" />
+        <CircularProgress size={24} />
       </Box>
     );
   }
 
-  // If no user is authenticated, redirect to login
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Next.js equivalent of rendering child pages
   return <Outlet />;
 }

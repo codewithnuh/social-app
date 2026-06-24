@@ -108,11 +108,12 @@ export default function Login() {
     <Box
       sx={{
         minHeight: '100vh',
+
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#ffffff', // clean white background
-        px: 2,
+        backgroundColor: '#fdfdfd',
+
         py: 4,
         animation: `${fadeIn} 0.8s ease-out`,
       }}
@@ -121,7 +122,7 @@ export default function Login() {
         elevation={1} // subtle shadow
         sx={{
           width: '100%',
-          maxWidth: 440,
+          maxWidth: 400,
           borderRadius: 4,
           p: { xs: 3, sm: 5 },
           backgroundColor: '#ffffff',

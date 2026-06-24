@@ -100,8 +100,7 @@ export default function Register() {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
-        px: 2,
-        py: 4,
+
         animation: `${fadeIn} 0.8s ease-out`,
       }}
     >

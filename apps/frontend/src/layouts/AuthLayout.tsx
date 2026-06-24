@@ -32,10 +32,6 @@ export default function AuthLayout() {
           <Box
             sx={{
               backgroundColor: 'background.paper',
-              p: { xs: 3, md: 5 },
-              borderRadius: 2, // Modern non-rounded edge preference
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-              border: '1px solid #e2e8f0',
             }}
           >
             <Outlet />

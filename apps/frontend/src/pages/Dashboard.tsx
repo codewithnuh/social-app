@@ -59,7 +59,7 @@ export default function Dashboard() {
         text: postText,
         image: postImage,
         author: {
-          _id: user.id,
+          _id: user._id,
           name: user.name,
           username: user.username,
           avatarUrl: user.avatarUrl,
@@ -100,7 +100,7 @@ export default function Dashboard() {
     });
 
     if (currentTab === 1) {
-      result = result.filter(post => post.author?._id !== user?.id);
+      result = result.filter(post => post.author?._id !== user?._id);
     } else if (currentTab === 2) {
       result = [...result].sort(
         (a, b) => (b.likesCount ?? 0) - (a.likesCount ?? 0)
@@ -108,7 +108,7 @@ export default function Dashboard() {
     }
 
     return result;
-  }, [postsArray, searchQuery, currentTab, user?.id]);
+  }, [postsArray, searchQuery, currentTab, user?._id]);
 
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 

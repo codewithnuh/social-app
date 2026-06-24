@@ -51,6 +51,9 @@ export function useUpdateProfile() {
 
     onSuccess: res => {
       queryClient.setQueryData(['user'], res.data);
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     },
   });
 }
